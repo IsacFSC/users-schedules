@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/prisma/client"
+}
+
+//datasource db {
+//provider = "mysql"
+//url      = env("DATABASE_URL")
+//}
+
+// prisma/schema.prisma
+// prisma/schema.prisma
+// datasource db {
+//   provider  = "postgresql"
+//   url  	    = env("DATABASE_URL")
+//   // uncomment next line if you use Prisma <5.10
+//   // directUrl = env("DATABASE_URL_UNPOOLED")
+// }
+
+datasource db {
+provider = "sqlite"
+url      = env("DATABASE_URL")
+}
+
+model Conversation {
+  id           Int       @id @default(autoincrement())
+  subject      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  participants User[]    @relation("ConversationParticipants")
+  messages     Message[]
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  content        String
+  createdAt      DateTime     @default(now())
+  authorId       Int
+  author         User         @relation(fields: [authorId], references: [id])
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+  completed   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  userId      Int?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      TaskStatus @default(PENDING)
+  scheduleId  Int?
+  schedule    Schedule?  @relation(fields: [scheduleId], references: [id])
+}
+
+model Schedule {
+  id           Int                @id @default(autoincrement())
+  name         String
+  description  String?
+  startTime    DateTime
+  endTime      DateTime
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  file         String?
+  fileMimeType String?
+  users        UsersOnSchedules[]
+  tasks        Task[]
+}
+
+model UsersOnSchedules {
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
+  scheduleId Int
+  assignedAt DateTime @default(now())
+
+  @@id([userId, scheduleId])
+}
+
+model User {
+  id            Int                @id @default(autoincrement())
+  name          String
+  passwordHash  String
+  email         String             @unique
+  active        Boolean            @default(true)
+  avatar        String?
+  createdAt     DateTime?          @default(now())
+  conversations Conversation[]     @relation("ConversationParticipants")
+  messages      Message[]
+  Tasks         Task[]
+  schedules     UsersOnSchedules[]
+  role          Role               @default(USER)
+}
+
+enum Role {
+  ADMIN
+  LEADER
+  USER
+}
+
+enum TaskStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
