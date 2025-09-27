@@ -37,8 +37,13 @@ export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
   @Get('/All')
-  findAllUsers(@Query() paginationDto: PaginationDto, @Query('search') search?: string) {
-    return this.userService.findAll(paginationDto, search);
+  findAllUsers(
+    @Query() paginationDto: PaginationDto,
+    @Query('search') search?: string,
+    @Query('active') active?: string,
+    @Query('role') role?: string
+  ) {
+    return this.userService.findAll(paginationDto, search, active, role);
   }
 
   @Get(':id')

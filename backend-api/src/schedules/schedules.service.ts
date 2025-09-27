@@ -12,21 +12,34 @@ export class SchedulesService {
   async create(createScheduleDto: CreateScheduleDto) {
     const { taskIds, userIds, ...scheduleData } = createScheduleDto;
     try {
+      // Cria a escala
       const newSchedule = await this.prisma.schedule.create({
         data: {
-          ...scheduleData,
-          scheduleTasks: {
-            create: taskIds?.map((taskId) => ({ taskId })),
-          },
-          scheduleUsers: {
-            create: userIds?.map((userId) => ({ userId })),
-          },
-        },
-        include: {
-          scheduleTasks: true,
-          scheduleUsers: true,
+          name: scheduleData.name,
+          description: scheduleData.description,
+          startTime: scheduleData.startTime,
+          endTime: scheduleData.endTime,
         },
       });
+
+      // Vincula usuários à escala
+      if (userIds?.length) {
+        await this.prisma.usersOnSchedules.createMany({
+          data: userIds.map(userId => ({
+            userId,
+            scheduleId: newSchedule.id,
+          })),
+        });
+      }
+
+      // Vincula tarefas à escala
+      if (taskIds?.length) {
+        await this.prisma.task.updateMany({
+          where: { id: { in: taskIds } },
+          data: { scheduleId: newSchedule.id },
+        });
+      }
+
       return newSchedule;
     } catch (error) {
       throw new HttpException(
@@ -64,48 +77,40 @@ export class SchedulesService {
 
   async update(id: number, updateScheduleDto: UpdateScheduleDto) {
     const { taskIds, userIds, ...scheduleData } = updateScheduleDto;
-
-    const existingSchedule = await this.prisma.schedule.findUnique({
-      where: { id },
-      include: {
-        scheduleTasks: true,
-        scheduleUsers: true,
-      },
-    });
-
-    if (!existingSchedule) {
-      throw new HttpException('Escala não encontrada!', HttpStatus.NOT_FOUND);
-    }
-
-    // Handle tasks update
-    const currentTaskIds = existingSchedule.scheduleTasks.map((st) => st.taskId);
-    const tasksToConnect = taskIds?.filter((taskId) => !currentTaskIds.includes(taskId)) || [];
-    const tasksToDisconnect = currentTaskIds.filter((taskId) => !taskIds?.includes(taskId)) || [];
-
-    // Handle users update
-    const currentUserIds = existingSchedule.scheduleUsers.map((su) => su.userId);
-    const usersToConnect = userIds?.filter((userId) => !currentUserIds.includes(userId)) || [];
-    const usersToDisconnect = currentUserIds.filter((userId) => !userIds?.includes(userId)) || [];
-
     try {
+      // Atualiza dados da escala
       const updatedSchedule = await this.prisma.schedule.update({
         where: { id },
         data: {
-          ...scheduleData,
-          scheduleTasks: {
-            deleteMany: { taskId: { in: tasksToDisconnect } },
-            create: tasksToConnect.map((taskId) => ({ taskId })),
-          },
-          scheduleUsers: {
-            deleteMany: { userId: { in: usersToDisconnect } },
-            create: usersToConnect.map((userId) => ({ userId })),
-          },
-        },
-        include: {
-          scheduleTasks: true,
-          scheduleUsers: true,
+          name: scheduleData.name,
+          description: scheduleData.description,
+          startTime: scheduleData.startTime,
+          endTime: scheduleData.endTime,
         },
       });
+
+      // Atualiza usuários vinculados à escala
+      if (userIds) {
+        // Remove todos os vínculos antigos
+        await this.prisma.usersOnSchedules.deleteMany({ where: { scheduleId: id } });
+        // Adiciona os novos vínculos
+        if (userIds.length) {
+          await this.prisma.usersOnSchedules.createMany({
+            data: userIds.map(userId => ({ userId, scheduleId: id })),
+          });
+        }
+      }
+
+      // Atualiza tarefas vinculadas à escala
+      if (taskIds) {
+        // Remove vínculo de todas as tarefas antigas
+        await this.prisma.task.updateMany({ where: { scheduleId: id }, data: { scheduleId: null } });
+        // Adiciona vínculo às novas tarefas
+        if (taskIds.length) {
+          await this.prisma.task.updateMany({ where: { id: { in: taskIds } }, data: { scheduleId: id } });
+        }
+      }
+
       return updatedSchedule;
     } catch (error) {
       throw new HttpException(

@@ -27,7 +27,13 @@ export class SchedulesController {
 
   @Post()
   create(@Body() createScheduleDto: CreateScheduleDto) {
-    return this.schedulesService.create(createScheduleDto);
+    console.log('[CREATE SCHEDULE] Body recebido:', createScheduleDto);
+    try {
+      return this.schedulesService.create(createScheduleDto);
+    } catch (error) {
+      console.error('[CREATE SCHEDULE] Erro:', error);
+      throw error;
+    }
   }
 
   @Get()

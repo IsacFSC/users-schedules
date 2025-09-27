@@ -66,12 +66,14 @@ export class AuthService {
     console.log(user);
     console.log('logado com sucesso');
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      token: token,
-      role: user.role, // Include the user's role
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
     };
   }
 }

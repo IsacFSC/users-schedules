@@ -42,17 +42,30 @@ export class UsersService {
     throw new HttpException('Usuário não encontrado!', HttpStatus.BAD_REQUEST);
   }
 
-  async findAll(paginationDto?: PaginationDto, search?: string) {
+  async findAll(paginationDto?: PaginationDto, search?: string, active?: string, role?: string) {
     const { limit = 10, offset = 0 } = paginationDto || {};
 
-    const whereClause = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
+    let filters: any[] = [];
+    if (search && search.trim() !== '') {
+      filters.push({
+        OR: [
+          { name: { contains: search } },
+          { email: { contains: search } },
+        ],
+      });
+    }
+    if (typeof active !== 'undefined' && active !== 'all') {
+      filters.push({ active: active === 'true' });
+    }
+    if (typeof role !== 'undefined' && role !== 'all' && ['ADMIN', 'LEADER', 'USER'].includes(role)) {
+      filters.push({ role });
+    }
+    let whereClause: any = {};
+    if (filters.length === 1) {
+      whereClause = filters[0];
+    } else if (filters.length > 1) {
+      whereClause = { AND: filters };
+    } // se filters.length === 0, whereClause permanece {}
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({

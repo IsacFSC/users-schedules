@@ -1,33 +1,19 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, userRole } = useAuth();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    } else {
-      // Redirect based on role if already authenticated
-      switch (userRole) {
-        case "ADMIN":
-          router.push("/admin-dashboard");
-          break;
-        case "LEADER":
-          router.push("/leader-dashboard");
-          break;
-        case "USER":
-          router.push("/user-dashboard");
-          break;
-        default:
-          router.push("/login"); // Fallback if role is unknown
-      }
-    }
-  }, [isAuthenticated, userRole, router]);
+    // The middleware should handle this, but this is a fallback.
+    router.replace('/dashboard');
+  }, [router]);
 
-  return <p>Loading...</p>;
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p>Redirecting...</p>
+    </div>
+  );
 }

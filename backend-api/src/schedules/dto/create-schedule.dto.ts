@@ -3,15 +3,11 @@ import { IsDateString, IsNotEmpty, IsString, IsOptional, IsArray, IsNumber } fro
 export class CreateScheduleDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  name: string;
 
-  @IsDateString()
-  @IsNotEmpty()
-  startDate: Date;
-
-  @IsDateString()
-  @IsNotEmpty()
-  endDate: Date;
+  @IsString()
+  @IsOptional()
+  description?: string;
 
   @IsDateString()
   @IsNotEmpty()
