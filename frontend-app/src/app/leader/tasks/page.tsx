@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -147,9 +146,9 @@ export default function TaskManagementPage() {
 
   return (
     <PrivateRoute>
-      <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+      <div className="p-8">
         <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Gerenciamento de Tarefas</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-200">Gerenciamento de Tarefas</h1>
           <div className="flex flex-wrap gap-2">
             <button
               onClick={handleBack}
@@ -176,10 +175,10 @@ export default function TaskManagementPage() {
               <table className="min-w-full leading-normal">
                 <thead>
                   <tr>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tarefa</th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Atribuído a</th>
-                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ações</th>
+                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-600 text-left text-xs font-semibold text-gray-50 uppercase tracking-wider">Tarefa</th>
+                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-600 text-left text-xs font-semibold text-gray-50 uppercase tracking-wider">Status</th>
+                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-600 text-left text-xs font-semibold text-gray-50 uppercase tracking-wider">Atribuído a</th>
+                    <th className="px-5 py-3 border-b-2 border-gray-200 bg-gray-600 text-left text-xs font-semibold text-gray-50 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
                 <tbody>

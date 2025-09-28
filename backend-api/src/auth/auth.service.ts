@@ -5,7 +5,7 @@ import { HashingServiceProtocol } from './hash/hashing.service';
 import jwtConfig from './config/jwt.config';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User } from '../../generated/prisma';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class AuthService {

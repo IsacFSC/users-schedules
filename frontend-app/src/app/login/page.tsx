@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { FaSignInAlt } from 'react-icons/fa';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -68,9 +69,9 @@ export default function LoginPage() {
           <div className="flex items-center justify-between">
             <button
               type="submit"
-              className="bg-sky-800 hover:bg-sky-900 text-gray-100 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+              className="bg-sky-800 hover:bg-sky-900 text-gray-100 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full flex items-center justify-center"
             >
-              Entrar
+              <FaSignInAlt className="mr-2" /> Entrar
             </button>
           </div>
         </form>

@@ -3,11 +3,80 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 import { Skill } from '@prisma/client';
 
 @Injectable()
 export class SchedulesService {
   constructor(private prisma: PrismaService) {}
+
+  async addUser(scheduleId: number, userId: number, skill: Skill) {
+    return this.prisma.usersOnSchedules.create({
+      data: {
+        scheduleId,
+        userId,
+        skill,
+      },
+    });
+  }
+
+  async removeUser(scheduleId: number, userId: number) {
+    return this.prisma.usersOnSchedules.delete({
+      where: {
+        userId_scheduleId: {
+          userId,
+          scheduleId,
+        },
+      },
+    });
+  }
+
+  async uploadFile(scheduleId: number, file: Express.Multer.File) {
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id: scheduleId },
+    });
+
+    if (!schedule) {
+      throw new HttpException('Escala não encontrada!', HttpStatus.NOT_FOUND);
+    }
+
+    const fileName = `${Date.now()}-${file.originalname}`;
+    const filePath = join(process.cwd(), 'files', fileName);
+
+    try {
+      writeFileSync(filePath, file.buffer);
+    } catch (error) {
+      throw new HttpException(
+        'Falha ao salvar o arquivo!',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    const updatedSchedule = await this.prisma.schedule.update({
+      where: { id: scheduleId },
+      data: { file: fileName },
+    });
+
+    return updatedSchedule;
+  }
+
+  async findSchedulesByUser(userId: number) {
+    // Busca escalas onde o usuário está vinculado
+    return this.prisma.schedule.findMany({
+      where: {
+        users: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      include: {
+        users: { include: { user: true } },
+        tasks: true,
+      },
+    });
+  }
 
   async create(createScheduleDto: CreateScheduleDto) {
     const { taskIds, userIds, ...scheduleData } = createScheduleDto;
@@ -24,20 +93,15 @@ export class SchedulesService {
 
       // Vincula usuários à escala
       if (userIds?.length) {
-        await this.prisma.usersOnSchedules.createMany({
-          data: userIds.map(userId => ({
-            userId,
-            scheduleId: newSchedule.id,
-          })),
-        });
+          await this.prisma.$executeRaw`DELETE FROM UsersOnSchedules WHERE scheduleId = ${newSchedule.id}`;
+          for (const userId of userIds) {
+            await this.prisma.$executeRaw`INSERT INTO UsersOnSchedules (userId, scheduleId) VALUES (${userId}, ${newSchedule.id})`;
+          }
       }
 
       // Vincula tarefas à escala
       if (taskIds?.length) {
-        await this.prisma.task.updateMany({
-          where: { id: { in: taskIds } },
-          data: { scheduleId: newSchedule.id },
-        });
+          await this.prisma.$executeRaw`UPDATE Task SET scheduleId = ${newSchedule.id} WHERE id IN (${taskIds.join(',')})`;
       }
 
       return newSchedule;
@@ -55,8 +119,8 @@ export class SchedulesService {
       take: Number(limit),
       skip: Number(offset),
       include: {
-        scheduleTasks: { include: { task: true } },
-        scheduleUsers: { include: { user: true, userSkills: { include: { skill: true } } } },
+        users: { include: { user: true } },
+        tasks: true,
       },
     });
   }
@@ -65,8 +129,8 @@ export class SchedulesService {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id },
       include: {
-        scheduleTasks: { include: { task: true } },
-        scheduleUsers: { include: { user: true, userSkills: { include: { skill: true } } } },
+        users: { include: { user: true } },
+        tasks: true,
       },
     });
     if (!schedule) {
@@ -92,23 +156,19 @@ export class SchedulesService {
       // Atualiza usuários vinculados à escala
       if (userIds) {
         // Remove todos os vínculos antigos
-        await this.prisma.usersOnSchedules.deleteMany({ where: { scheduleId: id } });
-        // Adiciona os novos vínculos
-        if (userIds.length) {
-          await this.prisma.usersOnSchedules.createMany({
-            data: userIds.map(userId => ({ userId, scheduleId: id })),
-          });
-        }
+          await this.prisma.$executeRaw`DELETE FROM UsersOnSchedules WHERE scheduleId = ${id}`;
+          for (const userId of userIds) {
+            await this.prisma.$executeRaw`INSERT INTO UsersOnSchedules (userId, scheduleId) VALUES (${userId}, ${id})`;
+          }
       }
 
       // Atualiza tarefas vinculadas à escala
       if (taskIds) {
         // Remove vínculo de todas as tarefas antigas
-        await this.prisma.task.updateMany({ where: { scheduleId: id }, data: { scheduleId: null } });
-        // Adiciona vínculo às novas tarefas
-        if (taskIds.length) {
-          await this.prisma.task.updateMany({ where: { id: { in: taskIds } }, data: { scheduleId: id } });
-        }
+          await this.prisma.$executeRaw`UPDATE Task SET scheduleId = NULL WHERE scheduleId = ${id}`;
+          for (const taskId of taskIds) {
+            await this.prisma.$executeRaw`UPDATE Task SET scheduleId = ${id} WHERE id = ${taskId}`;
+          }
       }
 
       return updatedSchedule;
@@ -135,97 +195,6 @@ export class SchedulesService {
     } catch (error) {
       throw new HttpException(
         'Falha ao deletar escala!',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  // Skill management for ScheduleUser
-  async addSkillToScheduleUser(scheduleId: number, userId: number, skillId: number) {
-    const scheduleUser = await this.prisma.scheduleUser.findUnique({
-      where: { scheduleId_userId: { scheduleId, userId } },
-    });
-
-    if (!scheduleUser) {
-      throw new HttpException('Usuário não atribuído a esta escala!', HttpStatus.NOT_FOUND);
-    }
-
-    try {
-      const userSkill = await this.prisma.userSkill.create({
-        data: {
-          scheduleId,
-          userId,
-          skillId,
-        },
-      });
-      return userSkill;
-    } catch (error) {
-      throw new HttpException(
-        'Falha ao adicionar habilidade ao usuário na escala!',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  async removeSkillFromScheduleUser(scheduleId: number, userId: number, skillId: number) {
-    const scheduleUser = await this.prisma.scheduleUser.findUnique({
-      where: { scheduleId_userId: { scheduleId, userId } },
-    });
-
-    if (!scheduleUser) {
-      throw new HttpException('Usuário não atribuído a esta escala!', HttpStatus.NOT_FOUND);
-    }
-
-    try {
-      await this.prisma.userSkill.delete({
-        where: { scheduleId_userId_skillId: { scheduleId, userId, skillId } },
-      });
-      return { message: 'Habilidade removida do usuário na escala com sucesso!' };
-    } catch (error) {
-      throw new HttpException(
-        'Falha ao remover habilidade do usuário na escala!',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  async createSkill(name: string): Promise<Skill> {
-    try {
-      const skill = await this.prisma.skill.create({
-        data: { name },
-      });
-      return skill;
-    } catch (error) {
-      throw new HttpException(
-        'Falha ao criar habilidade!',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  async findAllSkills(): Promise<Skill[]> {
-    return this.prisma.skill.findMany();
-  }
-
-  async findSkillById(id: number): Promise<Skill> {
-    const skill = await this.prisma.skill.findUnique({ where: { id } });
-    if (!skill) {
-      throw new HttpException('Habilidade não encontrada!', HttpStatus.NOT_FOUND);
-    }
-    return skill;
-  }
-
-  async deleteSkill(id: number) {
-    try {
-      const skill = await this.prisma.skill.findUnique({ where: { id } });
-      if (!skill) {
-        throw new HttpException('Habilidade não encontrada!', HttpStatus.NOT_FOUND);
-      }
-      await this.prisma.skill.delete({ where: { id } });
-      return { message: 'Habilidade deletada com sucesso!' };
-    } catch (error) {
-      throw new HttpException(
-        'Falha ao deletar habilidade!',
         HttpStatus.BAD_REQUEST,
       );
     }

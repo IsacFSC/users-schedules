@@ -8,6 +8,7 @@ interface UsersOnSchedules {
   userId: number;
   scheduleId: number;
   assignedAt: string;
+  skill: string;
 }
 
 export interface Schedule {
@@ -116,8 +117,8 @@ export const deleteSchedule = async (id: number): Promise<void> => {
   await api.delete(`/schedules/${id}`);
 };
 
-export const addUserToSchedule = async (scheduleId: number, userId: number): Promise<void> => {
-  await api.post(`/schedules/${scheduleId}/users/${userId}`);
+export const addUserToSchedule = async (scheduleId: number, userId: number, skill: string): Promise<void> => {
+  await api.post(`/schedules/${scheduleId}/users/${userId}`, { skill });
 };
 
 export const removeUserFromSchedule = async (scheduleId: number, userId: number): Promise<void> => {

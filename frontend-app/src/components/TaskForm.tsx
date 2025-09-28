@@ -1,8 +1,8 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Task } from '../services/taskService';
+import { FaTimes, FaSave } from 'react-icons/fa';
 
 interface TaskFormProps {
   taskToEdit?: Task | null;
@@ -61,15 +61,15 @@ export default function TaskForm({ taskToEdit, onSubmit, onCancel, successMessag
         <button
           type="button"
           onClick={onCancel}
-          className="bg-gray-500 hover:bg-gray-600 text-gray-050 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          className="bg-gray-500 hover:bg-gray-600 text-gray-050 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center"
         >
-          Cancelar
+          <FaTimes className="mr-2" /> Cancelar
         </button>
         <button
           type="submit"
-          className="bg-blue-500 hover:bg-blue-700 text-gray-200 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          className="bg-blue-500 hover:bg-blue-700 text-gray-200 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline flex items-center"
         >
-          {isEditing ? 'Atualizar tarefa' : 'Criar tarefa'}
+          <FaSave className="mr-2" /> {isEditing ? 'Atualizar tarefa' : 'Criar tarefa'}
         </button>
       </div>
     </form>

@@ -58,40 +58,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const { 'nextauth.token': token } = parseCookies();
+    let restoredUser = null;
     if (token) {
       try {
         const decodedToken: any = jwtDecode(token);
-        const userData = {
+        restoredUser = {
           id: decodedToken.sub,
           name: decodedToken.name,
           email: decodedToken.email,
           role: decodedToken.role,
+          avatar: decodedToken.avatar,
         };
-        setUser(userData);
-        // Sincroniza localStorage se não estiver presente
-        if (!localStorage.getItem('user.data')) {
-          localStorage.setItem('user.data', JSON.stringify(userData));
-        }
+        setUser(restoredUser);
+        localStorage.setItem('user.data', JSON.stringify(restoredUser));
       } catch (e) {
-        console.error("Failed to decode token, signing out.", e);
         destroyCookie(undefined, 'nextauth.token');
         localStorage.removeItem('user.data');
-        router.push('/login');
+        setUser(null);
       }
     } else {
-      // Fallback: tenta restaurar usuário do localStorage se token existir
       const userDataStr = localStorage.getItem('user.data');
       if (userDataStr) {
         try {
-          const userData = JSON.parse(userDataStr);
-          setUser(userData);
+          restoredUser = JSON.parse(userDataStr);
+          setUser(restoredUser);
         } catch (e) {
           localStorage.removeItem('user.data');
+          setUser(null);
         }
+      } else {
+        setUser(null);
       }
     }
     setLoading(false);
-  }, [router]);
+  }, []);
 
     async function signIn({ email, password }: { email: string; password: string }) {
     setError(null); // Clear previous errors

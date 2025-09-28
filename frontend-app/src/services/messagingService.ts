@@ -16,6 +16,8 @@ export interface Message {
   authorId: number;
   author: any;
   conversationId: number;
+  file?: string;
+  fileMimeType?: string;
 }
 
 export const getConversations = async (): Promise<Conversation[]> => {
@@ -35,5 +37,17 @@ export const createConversation = async (subject: string, message: string, recip
 
 export const createMessage = async (conversationId: number, content: string): Promise<Message> => {
   const { data } = await api.post(`/messaging/conversations/${conversationId}/messages`, { content });
+  return data;
+};
+
+export const uploadFile = async (conversationId: number, file: File): Promise<Message> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const { data } = await api.post(`/messaging/conversations/${conversationId}/messages/upload`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
   return data;
 };

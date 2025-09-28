@@ -62,7 +62,6 @@ const ScheduleFileManagement: React.FC<ScheduleFileManagementProps> = ({ schedul
 
   return (
     <div>
-      <h3>Schedule Files</h3>
       {user && user.role === 'LEADER' && (
         <div>
           <input type="file" onChange={handleFileChange} />

@@ -3,7 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
-import { User } from '../../generated/prisma';
+import { User } from '@prisma/client';
 import * as path from 'node:path';
 import * as fs from 'node:fs/promises';
 import { AuthService } from 'src/auth/auth.service';

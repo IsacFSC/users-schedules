@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMessages, createMessage, Message } from '../../../../services/messagingService';
+import { getMessages, createMessage, uploadFile, Message } from '../../../../services/messagingService';
 import { useAuth } from '../../../../hooks/useAuth';
+import { api } from '../../../../services/api';
 import PrivateRoute from '@/components/PrivateRoute';
 
 export default function ConversationPage() {
@@ -16,6 +17,7 @@ export default function ConversationPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchMessages = async () => {
     if (!conversationId) return;
@@ -36,13 +38,17 @@ export default function ConversationPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !conversationId) return;
+    if (!conversationId) return;
+    if (!newMessage.trim() && !selectedFile) return;
 
     try {
-      const sentMessage = await createMessage(conversationId, newMessage);
-      setMessages(prevMessages => [...prevMessages, sentMessage]);
-      setNewMessage('');
-      // Optionally, refetch messages to get the author details populated
+      if (selectedFile) {
+        await uploadFile(conversationId, selectedFile);
+        setSelectedFile(null);
+      } else {
+        await createMessage(conversationId, newMessage);
+        setNewMessage('');
+      }
       fetchMessages();
     } catch (error) {
       console.error("Failed to send message", error);
@@ -70,7 +76,17 @@ export default function ConversationPage() {
                   className={`flex ${msg.authorId === user?.id ? 'justify-end' : 'justify-start'}`}>
                   <div className={`inline-block p-2 rounded-lg ${msg.authorId === user?.id ? 'bg-emerald-500' : 'bg-violet-500'} text-white`}>
                     <p className="font-bold">{msg.author?.name || (msg.authorId === user?.id ? user.name : 'Participante')}</p>
-                    <p>{msg.content}</p>
+                    {msg.file ? (
+                      msg.fileMimeType?.startsWith('image/') ? (
+                        <img src={`${api.defaults.baseURL}/files/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
+                      ) : (
+                        <a href={`${api.defaults.baseURL}/files/${msg.file}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          {msg.content}
+                        </a>
+                      )
+                    ) : (
+                      <p>{msg.content}</p>
+                    )}
                     <p className="text-xs text-gray-600">{new Date(msg.createdAt).toLocaleTimeString()}</p>
                   </div>
                 </div>
@@ -88,6 +104,15 @@ export default function ConversationPage() {
               placeholder="Digite sua mensagem..."
               className="flex-grow p-2 border border-gray-300 rounded-md"
             />
+            <input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2 cursor-pointer">
+              Anexar
+            </label>
             <button type="submit" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">
               Enviar
             </button>

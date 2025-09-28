@@ -1,25 +1,18 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../../generated/prisma/client"
 }
 
-//datasource db {
-//provider = "mysql"
-//url      = env("DATABASE_URL")
-//}
-
-// prisma/schema.prisma
-// prisma/schema.prisma
 // datasource db {
-//   provider  = "postgresql"
-//   url  	    = env("DATABASE_URL")
-//   // uncomment next line if you use Prisma <5.10
-//   // directUrl = env("DATABASE_URL_UNPOOLED")
+//   provider = "sqlite"
+//   url      = env("DATABASE_URL")
 // }
 
+// prisma/schema.prisma
 datasource db {
-provider = "sqlite"
-url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url  	    = env("DATABASE_URL")
+  // uncomment next line if you use Prisma <5.10
+  // directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model Conversation {
@@ -39,6 +32,8 @@ model Message {
   author         User         @relation(fields: [authorId], references: [id])
   conversationId Int
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  file           String?
+  fileMimeType   String?
 }
 
 model Task {
@@ -74,6 +69,7 @@ model UsersOnSchedules {
   schedule   Schedule @relation(fields: [scheduleId], references: [id])
   scheduleId Int
   assignedAt DateTime @default(now())
+  skill      Skill    @default(OUTROS)
 
   @@id([userId, scheduleId])
 }
@@ -91,6 +87,18 @@ model User {
   Tasks         Task[]
   schedules     UsersOnSchedules[]
   role          Role               @default(USER)
+}
+
+enum Skill {
+  VOCAL_LEAD
+  BACKING_VOCAL
+  VIOLAO
+  SAX
+  GUITARRA
+  TECLADO
+  CONTRA_BAIXO
+  BATERIA
+  OUTROS
 }
 
 enum Role {

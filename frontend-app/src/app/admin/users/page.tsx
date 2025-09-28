@@ -15,24 +15,29 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
 import { api } from '../../../services/api';
 import PrivateRoute from '@/components/PrivateRoute';
+import { FaPlus, FaArrowLeft, FaSearch, FaEdit, FaTrash, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { Menu } from '@headlessui/react';
 
 export default function UserManagementPage() {
-  const { user, isAuthenticated } = useAuth();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
   const router = useRouter();
 
+  const [users, setUsers] = useState<User[]>([]);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
   useEffect(() => {
+    if (authLoading) return;
     if (!isAuthenticated || user?.role !== 'ADMIN') {
       router.push('/login');
     }
-  }, [isAuthenticated, user, router]);
-
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  }, [authLoading, isAuthenticated, user, router]);
 
   const getInitials = (name: string): string => {
     const parts = name.split(' ');
@@ -46,17 +51,22 @@ export default function UserManagementPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      setLoading(true);
-      const fetchedUsers = await getUsers();
+      setPageLoading(true);
+      const params = {
+        search: search || undefined,
+        active: statusFilter || undefined,
+        role: roleFilter || undefined,
+      };
+      const fetchedUsers = await getUsers(params);
       setUsers(fetchedUsers);
       setError(null);
     } catch (err) {
       setError('Falha ao buscar usuários. Por favor, tente novamente mais tarde.');
       console.error(err);
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
-  }, []);
+  }, [search, statusFilter, roleFilter]);
 
   useEffect(() => {
     if (isAuthenticated && user?.role === 'ADMIN') {
@@ -124,34 +134,67 @@ export default function UserManagementPage() {
   const handleBack = () => {
     router.back();
   };
-  
 
-  if (!isAuthenticated || user?.role !== 'ADMIN') {
-    return <p>Redirecionando para a página de login...</p>;
+  if (authLoading || !isAuthenticated || user?.role !== 'ADMIN') {
+    return <p>Carregando ou redirecionando...</p>;
   }
 
   return (
     <PrivateRoute>
       <div className="p-8">
+        <div className="flex flex-wrap gap-4 mb-6 items-center">
+          <input
+            type="text"
+            placeholder="Buscar por nome ou email"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="px-4 py-2 rounded border border-gray-400 focus:outline-none focus:ring focus:border-blue-300"
+          />
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="px-4 py-2 rounded border border-gray-400 focus:outline-none focus:ring focus:border-blue-300"
+          >
+            <option value="">Todos os Status</option>
+            <option value="true">Ativo</option>
+            <option value="false">Inativo</option>
+          </select>
+          <select
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value)}
+            className="px-4 py-2 rounded border border-gray-400 focus:outline-none focus:ring focus:border-blue-300"
+          >
+            <option value="">Todos os Perfis</option>
+            <option value="ADMIN">Admin</option>
+            <option value="LEADER">Líder</option>
+            <option value="USER">Usuário</option>
+          </select>
+          <button
+            onClick={fetchUsers}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
+          >
+            <FaSearch className="mr-2" /> Buscar
+          </button>
+        </div>
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-200">Gestão de Usuários</h1>
-          <div className="flex space-x-4"> {/* Group buttons */}
+          <div className="flex space-x-4">
             <button
               onClick={handleBack}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Voltar
+              <FaArrowLeft className="mr-2" /> Voltar
             </button>
             <button
               onClick={() => handleOpenModal()}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Criar Usuário
+              <FaPlus className="mr-2" /> Criar Usuário
             </button>
           </div>
         </div>
 
-        {loading && <p>Carregando usuários...</p>}
+        {pageLoading && <p>Carregando usuários...</p>}
         {error && <p className="text-red-500">{error}</p>}
         {successMessage && (
           <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -159,8 +202,8 @@ export default function UserManagementPage() {
           </div>
         )}
 
-        {!loading && !error && (
-          <div className="bg-gray-700 shadow-md rounded-lg overflow-hidden">
+        {!pageLoading && !error && (
+          <div className="bg-gray-700 shadow-md rounded-lg">
             <table className="min-w-full leading-normal">
               <thead>
                 <tr>
@@ -204,40 +247,56 @@ export default function UserManagementPage() {
                       <p className="text-gray-100 whitespace-no-wrap">{user.role}</p>
                     </td>
                     <td className="px-5 py-5 border-b border-gray-200 bg-gray-600 text-sm">
-                      <span
-                        className={`relative inline-block px-3 py-1 font-semibold leading-tight ${
-                          user.active ? 'text-green-900' : 'text-red-900'
-                        }`}>
-                        <span
-                          aria-hidden
-                          className={`absolute inset-0 ${
-                            user.active ? 'bg-green-200' : 'bg-red-200'
-                          } opacity-50 rounded-full`}
-                        ></span>
-                        <span className="relative">{user.active ? 'Ativo' : 'Inativo'}</span>
-                      </span>
+                      
                       <button
                         onClick={() => handleToggleActiveStatus(user.id, !user.active)}
-                        className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                        className={`px-2 py-1 text-md font-semibold rounded-full flex items-center ${
                           user.active ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
                         }`}
                       >
-                        {user.active ? 'Desativar' : 'Ativar'}
+                        {user.active ? <FaToggleOff className="mr-1" /> : <FaToggleOn className="mr-1" />} {user.active ? 'Inativo' : 'Ativo'}
                       </button>
                     </td>
                     <td className="px-5 py-5 border-b border-gray-200 bg-gray-600 text-sm">
-                      <button
-                        onClick={() => handleOpenModal(user)}
-                        className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1.5 mr-2"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-sm text-white bg-red-600 hover:bg-red-900 border rounded-3xl p-1.5 ml-2"
-                      >
-                        Deletar
-                      </button>
+                      <div className="relative inline-block text-left w-full">
+                        <Menu>
+                          {({ open }) => (
+                            <>
+                              <Menu.Button className="w-fit flex justify-center items-center bg-blue-500 hover:bg-blue-700 text-white rounded-3xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <span className="mr-2"><FaEdit /></span>
+                                <span className="md:inline">Menu</span>
+                                <svg className="ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                              </Menu.Button>
+                              <Menu.Items className="absolute z-10 left-0 mt-2 w-40 origin-top-right bg-gray-700 border border-gray-300 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none">
+                                <div className="py-1 w-full">
+                                  <Menu.Item>
+                                    {({ active }) => (
+                                      <button
+                                        onClick={() => handleOpenModal(user)}
+                                        className={`w-full flex items-center px-4 py-2 text-sm rounded ${active ? 'bg-blue-500 text-white' : 'bg-blue-700 text-white'} transition-colors`}
+                                        title="Editar"
+                                      >
+                                        <FaEdit className="mr-2" /> Editar
+                                      </button>
+                                    )}
+                                  </Menu.Item>
+                                  <Menu.Item>
+                                    {({ active }) => (
+                                      <button
+                                        onClick={() => handleDelete(user.id)}
+                                        className={`w-full flex items-center px-4 py-2 text-sm rounded ${active ? 'bg-red-500 text-white' : 'bg-red-700 text-white'} transition-colors`}
+                                        title="Deletar"
+                                      >
+                                        <FaTrash className="mr-2" /> Deletar
+                                      </button>
+                                    )}
+                                  </Menu.Item>
+                                </div>
+                              </Menu.Items>
+                            </>
+                          )}
+                        </Menu>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -256,7 +315,7 @@ export default function UserManagementPage() {
               userToEdit={editingUser}
               onSubmit={handleFormSubmit}
               onCancel={handleCloseModal}
-              successMessage={successMessage}
+              successMessage={successMessage ?? undefined}
             />
           </Modal>
         )}

@@ -8,6 +8,36 @@ import { getMySchedules, downloadScheduleFile, Schedule } from '../../services/s
 import { getUsers, User } from '../../services/userService';
 import PrivateRoute from '@/components/PrivateRoute';
 import ScheduleFileManagement from '@/components/ScheduleFileManagement';
+import { FaEnvelope, FaSync, FaSignOutAlt, FaDownload } from 'react-icons/fa';
+import { Menu } from '@headlessui/react';
+// Função para transformar links em <a> (igual admin)
+const linkify = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const maxLength = 32;
+  return text.split('\n').map((line, index) => (
+    <div key={index}>
+      {line.split(urlRegex).map((part, i) => {
+        if (part.match(urlRegex)) {
+          const display = part.length > maxLength ? part.slice(0, maxLength) + '...' : part;
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-600 hover:underline break-all max-w-[160px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px]"
+              title={part}
+            >
+              {display}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </div>
+  ));
+};
 
 enum Role {
   ADMIN = 'ADMIN',
@@ -32,46 +62,49 @@ const groupSchedulesByDate = (schedules: Schedule[]) => {
 };
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut, loading } = useAuth();
   const router = useRouter();
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [schedulesLoading, setSchedulesLoading] = useState(true);
 
   const fetchData = async () => {
     if (user) {
       try {
-        setLoading(true);
+        setSchedulesLoading(true);
         const mySchedules = await getMySchedules();
         setSchedules(mySchedules);
         setFilteredSchedules(mySchedules);
         console.log("Fetched schedules:", mySchedules);
       } catch (error) {
+        const axiosError = error as import('axios').AxiosError;
+        if (axiosError?.response?.status === 403) {
+          alert('Sua sessão expirou ou você não tem permissão. Faça login novamente.');
+        } else {
+          alert('Falha ao buscar escalas. Tente novamente.');
+        }
         console.error("Falha ao buscar escalas", error);
       } finally {
-        setLoading(false);
+        setSchedulesLoading(false);
       }
     }
   };
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (loading) return; // Aguarda autenticação
+    if (!user) {
       router.push('/login');
       return;
     }
-
-    if (user) {
-      if (user.role !== Role.USER) {
-        const targetDashboard = user.role === Role.ADMIN ? '/admin/dashboard' : '/leader/dashboard';
-        router.replace(targetDashboard);
-        return;
-      }
-
-      fetchData();
+    if (user.role !== Role.USER) {
+      const targetDashboard = user.role === Role.ADMIN ? '/admin/dashboard' : '/leader/dashboard';
+      router.replace(targetDashboard);
+      return;
     }
-  }, [user, isAuthenticated, router]);
+    fetchData();
+  }, [user, loading, router]);
 
   useEffect(() => {
     const filtered = schedules.filter(schedule =>
@@ -83,10 +116,21 @@ export default function DashboardPage() {
   const handleDownload = async (scheduleId: number) => {
     try {
       await downloadScheduleFile(scheduleId);
+      showToast('Escala baixada com sucesso!', 'success');
     } catch (error) {
       console.error('Error downloading file:', error);
-      alert('Erro ao baixar o arquivo. Tente novamente.');
+      showToast('Erro ao baixar o arquivo. Tente novamente.', 'error');
     }
+// Toast simples
+function showToast(message: string, type: 'success' | 'error') {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.className = `fixed top-6 right-6 z-50 px-4 py-2 rounded shadow-lg text-white font-bold ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
   };
 
   const handleRefresh = () => {
@@ -94,9 +138,16 @@ export default function DashboardPage() {
   }
 
   if (!user || user.role !== Role.USER) {
+    if (loading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <p>Carregando autenticação...</p>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p>Carregando ou redirecionando...</p>
+        <p>Redirecionando...</p>
       </div>
     );
   }
@@ -105,29 +156,29 @@ export default function DashboardPage() {
 
   return (
     <PrivateRoute>
-      <div className="min-h-screen bg-gray-100 p-4 md:p-8 bg-gradient-to-br from-white to-pink-100">
+      <div className="min-h-screen bg-gray-900 p-4 md:p-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Painel do Usuário</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">Painel do Usuário</h1>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href="/dashboard/messages" className="bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-center">
-                Mensagens
+            <Link href="/dashboard/messages" className="bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-center flex items-center">
+                <FaEnvelope className="mr-2" /> Mensagens
             </Link>
             <button
               onClick={handleRefresh}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Atualizar
+              <FaSync className="mr-2" /> Atualizar
             </button>
             <button
               onClick={signOut}
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Sair
+              <FaSignOutAlt className="mr-2" /> Sair
             </button>
           </div>
         </div>
-        <p className="mt-2 text-gray-700">Bem-vindo, {user.name}!</p>
-        <p className="mt-2 text-gray-700">Você está logado como: {user.role}</p>
+        <p className="mt-2 text-gray-200">Bem-vindo, {user.name}!</p>
+        <p className="mt-2 text-gray-200">Você está logado como: {user.role}</p>
 
         <div className="mt-8">
           <input
@@ -135,23 +186,23 @@ export default function DashboardPage() {
             placeholder="Buscar escalas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-md"
           />
         </div>
 
         {loading ? (
-          <p className="mt-8">Carregando suas escalas...</p>
+    <p className="mt-8">Carregando suas escalas...</p>
         ) : (
           <div className="mt-8">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-900">Suas Escalas</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-white">Suas Escalas</h2>
             <div className="space-y-8">
               {Object.keys(groupedSchedules).length > 0 ? (
                 Object.keys(groupedSchedules).map(date => (
                   <div key={date}>
-                    <h3 className="text-xl font-semibold text-gray-700 mb-4 border-b-2 pb-2">{date}</h3>
+                    <h3 className="text-xl font-semibold text-gray-200 mb-4 border-b-2 pb-2">{date}</h3>
                     <div className="space-y-4">
                       {groupedSchedules[date].map(schedule => (
-                        <div key={schedule.id} className="p-6 rounded-lg shadow-lg shadow-inner bg-gradient-to-br from-white to-emerald-100">
+                        <div key={schedule.id} className="p-6 rounded-lg shadow-lg shadow-inner bg-teal-200 hover:bg-teal-400 transition-shadow">
                           <div className="flex justify-between items-start flex-wrap">
                             <div className="flex-1">
                               <h3 className="text-xl font-bold text-gray-900">{schedule.name}</h3>
@@ -163,9 +214,9 @@ export default function DashboardPage() {
                             <div className="flex items-center space-x-2 mt-4 md:mt-0">
                               <button
                                 onClick={() => handleDownload(schedule.id)}
-                                className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                                className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center'
                               >
-                                Baixar Escala
+                                <FaDownload className="mr-2" /> Baixar Escala
                               </button>
                               
                             </div>
@@ -183,8 +234,14 @@ export default function DashboardPage() {
                               <h4 className="font-semibold text-gray-900">Tarefas nesta escala:</h4>
                               <ul className="list-disc list-inside">
                                 {schedule.tasks.map(task => (
-                                  <li key={task.id} className="text-gray-800">
-                                    <strong>{task.name}:</strong> {task.description} - <span className={`font-semibold ${task.status === 'PENDENTE' ? 'text-yellow-600' : task.status === 'APROVADO' ? 'text-green-600' : 'text-red-600'}`}>{task.status}</span>
+                                  <li key={task.id} className="text-gray-800 mb-2">
+                                    <div className="font-bold text-lg mb-1">{task.name}</div>
+                                    <div className="space-y-1">
+                                      {task.description && linkify(task.description)}
+                                    </div>
+                                    <div className="mt-1">
+                                      <span className={`font-semibold ${task.status === 'PENDING' ? 'text-yellow-600' : task.status === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>{task.status}</span>
+                                    </div>
                                   </li>
                                 ))}
                               </ul>

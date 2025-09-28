@@ -1,7 +1,7 @@
-
 'use client';
 
 import { ReactNode } from 'react';
+import { FaTimes } from 'react-icons/fa';
 
 interface ModalProps {
   isOpen: boolean;
@@ -22,10 +22,10 @@ export default function Modal({ isOpen, onClose, children, title }: ModalProps) 
           <h3 className="text-xl font-bold text-gray-200">{title}</h3>
           <button
             onClick={onClose}
-            className="text-gray-800 font-bold hover:text-gray-600 text-2xl px-2"
+            className="text-gray-400 hover:text-gray-200"
             aria-label="Fechar"
           >
-            &times;
+            <FaTimes />
           </button>
         </div>
         <div>{children}</div>

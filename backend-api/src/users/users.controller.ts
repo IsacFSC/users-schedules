@@ -24,7 +24,7 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/common/role.enum';
 import { ActiveUser } from 'src/auth/param/active-user.decorator';
-import { User } from '../../generated/prisma';
+import { User } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 // > Buscar os detalhes de um usuarios

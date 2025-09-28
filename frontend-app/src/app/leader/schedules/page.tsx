@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
 import { AxiosError } from 'axios';
 import PrivateRoute from '@/components/PrivateRoute';
+import { FaArrowLeft, FaFileUpload } from 'react-icons/fa';
 
 export default function LeaderScheduleManagementPage() {
   const { user, isAuthenticated } = useAuth();
@@ -104,15 +105,15 @@ export default function LeaderScheduleManagementPage() {
 
   return (
     <PrivateRoute>
-      <div className="p-8 bg-gray-100">
+      <div className="p-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">Gerenciamento de Suas Escalas</h1>
+          <h1 className="text-3xl font-bold text-gray-200">Gerenciamento de Suas Escalas</h1>
           <div className="flex space-x-4"> {/* Group buttons */}
             <button
               onClick={handleBack}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Voltar
+              <FaArrowLeft className="mr-2" /> Voltar
             </button>
           </div>
         </div>
@@ -124,7 +125,7 @@ export default function LeaderScheduleManagementPage() {
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {schedules.map((schedule) => (
-              <div key={schedule.id} className="bg-gradient-to-b from-white to-fuchsia-300 p-6 rounded-lg shadow-md flex flex-col justify-between">
+              <div key={schedule.id} className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-gray-800">{schedule.name}</h2>
                   <p className="text-gray-700 mt-2 h-12 overflow-hidden">{schedule.description}</p>
@@ -136,7 +137,9 @@ export default function LeaderScheduleManagementPage() {
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end flex-wrap gap-2">
-                  <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 rounded-3xl p-1.5">Anexar / Editar Arquivo</button>
+                  <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 rounded-3xl p-1.5 flex items-center">
+                    <FaFileUpload className="mr-2" /> Anexar / Editar Arquivo
+                  </button>
                 </div>
               </div>
             ))}

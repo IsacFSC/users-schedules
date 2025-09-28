@@ -19,7 +19,9 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { Role } from 'src/auth/common/role.enum';
 import { ActiveUser } from '../auth/param/active-user.decorator';
-import { User } from '../../generated/prisma';
+import { User } from '@prisma/client';
+
+import { GetTasksFilterDto } from './dto/get-tasks-filter.dto';
 
 @UseGuards(AuthTokenGuard, RolesGuard)
 @Controller('tasks')
@@ -29,8 +31,8 @@ export class TasksController {
 
   @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   @Get('/All')
-  findAllTasks(@Query() paginationDto: PaginationDto, @Query('search') search?: string) {
-    return this.taskService.findAll(paginationDto, search);
+  findAllTasks(@Query() paginationDto: PaginationDto, @Query() filterDto: GetTasksFilterDto) {
+    return this.taskService.findAll(paginationDto, filterDto);
   }
 
   @Roles(Role.ADMIN, Role.LEADER, Role.USER)
@@ -59,5 +61,32 @@ export class TasksController {
   @Delete(':id')
   removeTask(@Param('id', ParseIntPipe) id: number, @ActiveUser() user: User) {
     return this.taskService.remove(id, user);
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id/assign/:scheduleId')
+  assignTask(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('scheduleId', ParseIntPipe) scheduleId: number,
+  ) {
+    return this.taskService.assignTask(id, scheduleId);
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id/unassign')
+  unassignTask(@Param('id', ParseIntPipe) id: number) {
+    return this.taskService.unassignTask(id);
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id/approve')
+  approveTask(@Param('id', ParseIntPipe) id: number, @ActiveUser() user: User) {
+    return this.taskService.approveTask(id, user);
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id/reject')
+  rejectTask(@Param('id', ParseIntPipe) id: number, @ActiveUser() user: User) {
+    return this.taskService.rejectTask(id, user);
   }
 }

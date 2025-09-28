@@ -22,6 +22,7 @@ import { useAuth } from '../../../hooks/useAuth';
 import { AxiosError } from 'axios';
 import PrivateRoute from '@/components/PrivateRoute';
 import { downloadScheduleFile } from '../../../services/scheduleFileService';
+import { FaPlus, FaArrowLeft, FaTasks, FaUsers, FaDownload, FaEdit, FaTrash } from 'react-icons/fa';
 
 export default function ScheduleManagementPage() {
   const { user, isAuthenticated } = useAuth();
@@ -170,10 +171,10 @@ export default function ScheduleManagementPage() {
     }
   };
 
-  const handleAddUser = async (userId: number) => {
+  const handleAddUser = async (userId: number, skill: string) => {
     if (!selectedSchedule) return;
     try {
-      await addUserToSchedule(selectedSchedule.id, userId);
+      await addUserToSchedule(selectedSchedule.id, userId, skill);
       setSuccessMessage('Usuário adicionado com sucesso!');
       setError(null);
       // Optimistically update the selected schedule's users array
@@ -183,7 +184,7 @@ export default function ScheduleManagementPage() {
           if (!prev) return null;
           return {
             ...prev,
-            users: [...prev.users, { userId: userToAdd.id, user: userToAdd, scheduleId: prev.id, assignedAt: new Date().toISOString() }]
+            users: [...prev.users, { userId: userToAdd.id, user: userToAdd, scheduleId: prev.id, assignedAt: new Date().toISOString(), skill }]
           };
         });
       }
@@ -270,12 +271,12 @@ export default function ScheduleManagementPage() {
           <div className="flex space-x-4"> {/* Group buttons */}
             <button
               onClick={handleBack}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex items-center"
             >
-              Voltar
+              <FaArrowLeft className="mr-2" /> Voltar
             </button>
-            <button onClick={() => handleOpenFormModal()} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-              Criar Escala
+            <button onClick={() => handleOpenFormModal()} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center">
+              <FaPlus className="mr-2" /> Criar Escala
             </button>
           </div>
         </div>
@@ -287,11 +288,11 @@ export default function ScheduleManagementPage() {
         {!loading && !error && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {schedules.map((schedule) => (
-              <div key={schedule.id} className="bg-white p-6 rounded-lg shadow-md flex flex-col justify-between">
+              <div key={schedule.id} className="bg-teal-200 hover:bg-teal-400 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col justify-between">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">{schedule.name}</h2>
-                  <p className="text-gray-600 mt-2 h-12 overflow-hidden">{schedule.description}</p>
-                  <div className="mt-4 space-y-1">
+                  <h2 className="text-xl font-bold text-gray-900">{schedule.name}</h2>
+                  <p className="text-gray-700 mt-2 h-12 overflow-hidden">{schedule.description}</p>
+                  <div className="mt-4 space-y-1 text-gray-800">
                     <p><strong>Data Inicial:</strong> {formatDate(schedule.startTime)}</p>
                     <p><strong>Data Final:</strong> {formatDate(schedule.endTime)}</p>
                     <p><strong>Usuários:</strong> {(Array.isArray(schedule.users) ? schedule.users.length : 0)}</p>
@@ -299,18 +300,26 @@ export default function ScheduleManagementPage() {
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end flex-wrap gap-2">
-                  <button onClick={() => handleOpenTaskModal(schedule)} className="text-sm text-white bg-emerald-700 hover:bg-emerald-500 border rounded-3xl p-1">Gerenciar tarefas</button>
-                  <button onClick={() => handleOpenUserModal(schedule)} className="text-sm text-white bg-blue-700 hover:bg-blue-500 border rounded-3xl p-1">Gerenciar usuários</button>
+                  <button onClick={() => handleOpenTaskModal(schedule)} className="text-sm text-white bg-emerald-700 hover:bg-emerald-500 border rounded-3xl p-1 flex items-center" title="Gerenciar tarefas">
+                    <FaTasks />
+                  </button>
+                  <button onClick={() => handleOpenUserModal(schedule)} className="text-sm text-white bg-blue-700 hover:bg-blue-500 border rounded-3xl p-1 flex items-center" title="Gerenciar usuários">
+                    <FaUsers />
+                  </button>
                   {schedule.file && (
                     <button
                       onClick={() => handleDownloadClick(schedule.id)}
-                      className="text-sm text-white bg-blue-500 hover:bg-blue-700 border rounded-3xl p-1.5"
+                      className="text-sm text-white bg-blue-500 hover:bg-blue-700 border rounded-3xl p-1 flex items-center" title="Baixar Anexo"
                     >
-                      Baixar Anexo
+                      <FaDownload />
                     </button>
                   )}
-                  <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1.5">Editar</button>
-                  <button onClick={() => handleDelete(schedule.id)} className="text-sm text-white bg-red-600 hover:bg-red-900 border rounded-3xl p-1.5">Deletar</button>
+                  <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1 flex items-center" title="Editar">
+                    <FaEdit />
+                  </button>
+                  <button onClick={() => handleDelete(schedule.id)} className="text-sm text-white bg-red-600 hover:bg-red-900 border rounded-3xl p-1 flex items-center" title="Deletar">
+                    <FaTrash />
+                  </button>
                 </div>
               </div>
             ))}

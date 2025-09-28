@@ -9,8 +9,16 @@ import {
   ParseIntPipe,
   UseGuards,
   Query,
+  Request,
+  HttpException,
+  HttpStatus,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
+import { Response } from 'express';
+import { generateSchedulePDF } from './pdf.utils';
+import { Res } from '@nestjs/common';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { Roles } from 'src/auth/decorators/roles.decorator';
@@ -18,22 +26,71 @@ import { Role } from 'src/auth/common/role.enum';
 import { AuthTokenGuard } from 'src/auth/guard/auth-token.guard';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import { AddUserToScheduleDto } from './dto/add-user-to-schedule.dto';
 
 @UseGuards(AuthTokenGuard, RolesGuard)
 @Roles(Role.ADMIN)
 @Controller('schedules')
 export class SchedulesController {
+  @Get(':id/pdf')
+  async downloadSchedulePDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    const schedule = await this.schedulesService.findOne(id);
+    const pdfBuffer = generateSchedulePDF(schedule);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename=escala_${id}.pdf`,
+    });
+    res.send(pdfBuffer);
+  }
   constructor(private readonly schedulesService: SchedulesService) {}
 
   @Post()
+  @Roles(Role.ADMIN)
   create(@Body() createScheduleDto: CreateScheduleDto) {
-    console.log('[CREATE SCHEDULE] Body recebido:', createScheduleDto);
-    try {
-      return this.schedulesService.create(createScheduleDto);
-    } catch (error) {
-      console.error('[CREATE SCHEDULE] Erro:', error);
-      throw error;
+    return this.schedulesService.create(createScheduleDto);
+  }
+
+  @Post(':id/upload')
+  @Roles(Role.ADMIN, Role.LEADER)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadFile(
+    @Param('id', ParseIntPipe) id: number,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.schedulesService.uploadFile(id, file);
+  }
+
+  @Post(':id/users/:userId')
+  @Roles(Role.ADMIN)
+  addUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() addUserToScheduleDto: AddUserToScheduleDto,
+  ) {
+    return this.schedulesService.addUser(id, userId, addUserToScheduleDto.skill);
+  }
+
+  @Delete(':id/users/:userId')
+  @Roles(Role.ADMIN)
+  removeUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+  ) {
+    return this.schedulesService.removeUser(id, userId);
+  }
+
+
+  @Get('my-schedules')
+  @Roles(Role.USER, Role.LEADER, Role.ADMIN)
+  async getMySchedules(@Request() req: any) {
+    // req.user.id deve estar disponível pelo AuthTokenGuard
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new HttpException('Usuário não autenticado', HttpStatus.UNAUTHORIZED);
     }
+    return this.schedulesService.findSchedulesByUser(userId);
   }
 
   @Get()
@@ -47,6 +104,7 @@ export class SchedulesController {
   }
 
   @Patch(':id')
+  @Roles(Role.LEADER, Role.ADMIN)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() updateScheduleDto: UpdateScheduleDto,
@@ -60,41 +118,5 @@ export class SchedulesController {
   }
 
   // Skill management endpoints
-  @Post(':scheduleId/users/:userId/skills/:skillId')
-  addSkillToScheduleUser(
-    @Param('scheduleId', ParseIntPipe) scheduleId: number,
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('skillId', ParseIntPipe) skillId: number,
-  ) {
-    return this.schedulesService.addSkillToScheduleUser(scheduleId, userId, skillId);
-  }
-
-  @Delete(':scheduleId/users/:userId/skills/:skillId')
-  removeSkillFromScheduleUser(
-    @Param('scheduleId', ParseIntPipe) scheduleId: number,
-    @Param('userId', ParseIntPipe) userId: number,
-    @Param('skillId', ParseIntPipe) skillId: number,
-  ) {
-    return this.schedulesService.removeSkillFromScheduleUser(scheduleId, userId, skillId);
-  }
-
-  @Post('skills')
-  createSkill(@Body('name') name: string) {
-    return this.schedulesService.createSkill(name);
-  }
-
-  @Get('skills')
-  findAllSkills() {
-    return this.schedulesService.findAllSkills();
-  }
-
-  @Get('skills/:id')
-  findSkillById(@Param('id', ParseIntPipe) id: number) {
-    return this.schedulesService.findSkillById(id);
-  }
-
-  @Delete('skills/:id')
-  deleteSkill(@Param('id', ParseIntPipe) id: number) {
-    return this.schedulesService.deleteSkill(id);
-  }
+  // Endpoints de Skill removidos pois não existem mais no serviço
 }

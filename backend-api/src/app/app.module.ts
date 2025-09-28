@@ -14,6 +14,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from 'src/auth/auth.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'node:path';
+import { MessagingModule } from 'src/messaging/messaging.module';
 // import { APP_GUARD } from '@nestjs/core';
 // import { AuthAdminGuard } from 'src/common/guards/admin.guard';
 
@@ -34,6 +35,7 @@ import { join } from 'node:path';
         },
       },
     }),
+    MessagingModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { getConversations, getMessages, createMessage, createConversation, Conversation, Message } from '../../../services/messagingService';
+import { getConversations, getMessages, createMessage, createConversation, uploadFile, Conversation, Message } from '../../../services/messagingService';
 import { getUsers, User } from '../../../services/userService';
 import NewConversationModal from '../../../components/NewConversationModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
+import { api } from '../../../services/api';
 import PrivateRoute from '@/components/PrivateRoute';
 
 export default function MessagingPage() {
@@ -28,6 +29,7 @@ export default function MessagingPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isNewConversationModalOpen, setIsNewConversationModalOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -71,11 +73,17 @@ export default function MessagingPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!selectedConversation || !newMessage.trim()) return;
+    if (!selectedConversation) return;
+    if (!newMessage.trim() && !selectedFile) return;
 
     try {
-      await createMessage(selectedConversation.id, newMessage);
-      setNewMessage('');
+      if (selectedFile) {
+        await uploadFile(selectedConversation.id, selectedFile);
+        setSelectedFile(null);
+      } else {
+        await createMessage(selectedConversation.id, newMessage);
+        setNewMessage('');
+      }
       const fetchedMessages = await getMessages(selectedConversation.id);
       setMessages(fetchedMessages);
       setSuccessMessage('Mensagem enviada com sucesso!');
@@ -155,9 +163,19 @@ export default function MessagingPage() {
                 <div className="bg-white shadow-md rounded-lg p-4 h-96 overflow-y-auto mb-4">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`mb-2 ${msg.authorId === user?.id ? 'text-right' : 'text-left'}`}>
-                      <p className={`inline-block p-2 rounded-lg ${msg.authorId === user?.id ? 'bg-fuchsia-200' : 'bg-emerald-200'}`}>
-                        {msg.content}
-                      </p>
+                      <div className={`inline-block p-2 rounded-lg ${msg.authorId === user?.id ? 'bg-fuchsia-200' : 'bg-emerald-200'}`}>
+                        {msg.file ? (
+                          msg.fileMimeType?.startsWith('image/') ? (
+                            <img src={`${api.defaults.baseURL}/files/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
+                          ) : (
+                            <a href={`${api.defaults.baseURL}/files/${msg.file}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                              {msg.content}
+                            </a>
+                          )
+                        ) : (
+                          <p>{msg.content}</p>
+                        )}
+                      </div>
                       <p className="text-xs text-gray-500">{new Date(msg.createdAt).toLocaleTimeString()}</p>
                     </div>
                   ))}
@@ -170,6 +188,15 @@ export default function MessagingPage() {
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                     placeholder="Digite uma mensagem..."
                   />
+                  <input
+                    type="file"
+                    onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2 cursor-pointer">
+                    Anexar
+                  </label>
                   <button onClick={handleSendMessage} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">
                     Enviar
                   </button>

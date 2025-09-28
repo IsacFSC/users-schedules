@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -31,11 +30,11 @@ export default function ScheduleTaskManagement({ schedule, allTasks, onAssignTas
     <div className="grid grid-cols-2 gap-6">
       {/* Assigned Tasks */}
       <div>
-        <h4 className="font-semibold text-lg mb-2">Tarefas Atribuídas</h4>
+        <h4 className="font-semibold text-lg mb-2 text-gray-200">Tarefas Atribuídas</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {assignedTasks.length > 0 ? assignedTasks.map(task => (
-            <div key={task.id} className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-              <span>{task.name}</span>
+            <div key={task.id} className="flex items-center justify-between bg-gray-700 p-2 rounded-md">
+              <span className="text-gray-200">{task.name}</span>
               <button
                 onClick={() => onUnassignTask(task.id)}
                 className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -43,17 +42,17 @@ export default function ScheduleTaskManagement({ schedule, allTasks, onAssignTas
                 Desatribuir
               </button>
             </div>
-          )) : <p className="text-sm text-gray-500">Nenhuma tarefa atribuída.</p>}
+          )) : <p className="text-sm text-gray-400">Nenhuma tarefa atribuída.</p>}
         </div>
       </div>
 
       {/* Available Tasks */}
       <div>
-        <h4 className="font-semibold text-lg mb-2">Tarefas Disponíveis</h4>
+        <h4 className="font-semibold text-lg mb-2 text-gray-200">Tarefas Disponíveis</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
           {availableTasks.length > 0 ? availableTasks.map(task => (
-            <div key={task.id} className="flex items-center justify-between bg-gray-100 p-2 rounded-md">
-              <span>{task.name}</span>
+            <div key={task.id} className="flex items-center justify-between bg-gray-700 p-2 rounded-md">
+              <span className="text-gray-200">{task.name}</span>
               <button
                 onClick={() => onAssignTask(task.id)}
                 className="text-xs bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600"
@@ -61,7 +60,7 @@ export default function ScheduleTaskManagement({ schedule, allTasks, onAssignTas
                 Atribuir
               </button>
             </div>
-          )) : <p className="text-sm text-gray-500">Nenhuma tarefa disponível.</p>}
+          )) : <p className="text-sm text-gray-400">Nenhuma tarefa disponível.</p>}
         </div>
       </div>
       <div className="col-span-2">
