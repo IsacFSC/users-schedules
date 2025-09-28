@@ -17,9 +17,6 @@
 /.next/
 /out/
 
-# prisma
-*.seed.ts
-
 # production
 /build
 
