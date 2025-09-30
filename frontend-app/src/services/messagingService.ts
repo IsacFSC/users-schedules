@@ -25,6 +25,11 @@ export const getConversations = async (): Promise<Conversation[]> => {
   return data;
 };
 
+export const getUnreadMessagesCount = async (): Promise<number> => {
+  const { data } = await api.get('/messaging/conversations/unread-count');
+  return data;
+};
+
 export const getMessages = async (conversationId: number): Promise<Message[]> => {
   const { data } = await api.get(`/messaging/conversations/${conversationId}/messages`);
   return data;

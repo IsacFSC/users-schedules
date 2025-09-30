@@ -62,10 +62,33 @@ export class MessagingService {
     });
   }
 
+  async getUnreadMessagesCount(userId: number): Promise<number> {
+    const unreadCount = await this.prisma.message.count({
+      where: {
+        conversation: {
+          participants: {
+            some: {
+              id: userId,
+            },
+          },
+        },
+        readBy: {
+          none: {
+            userId: userId,
+          },
+        },
+        authorId: {
+          not: userId,
+        },
+      },
+    });
+    return unreadCount;
+  }
+
   async getMessages(conversationId: number, userId: number) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
-      include: { participants: true },
+      include: { participants: true, messages: true },
     });
 
     if (!conversation) {
@@ -80,6 +103,16 @@ export class MessagingService {
         'Você não tem permissão para ver estas mensagens!',
       );
     }
+
+    // Mark messages as read
+    const messageIds = conversation.messages.map((message) => message.id);
+    await this.prisma.messageRead.createMany({
+      data: messageIds.map((messageId) => ({
+        messageId,
+        userId,
+      })),
+      skipDuplicates: true,
+    });
 
     return this.prisma.message.findMany({
       where: { conversationId },

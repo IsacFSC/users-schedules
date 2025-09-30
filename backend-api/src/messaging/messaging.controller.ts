@@ -44,6 +44,12 @@ export class MessagingController {
     return this.messagingService.getConversations(req.user.id);
   }
 
+  @Get('conversations/unread-count')
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
+  getUnreadMessagesCount(@Request() req: any) {
+    return this.messagingService.getUnreadMessagesCount(req.user.id);
+  }
+
   @Get('conversations/:id/messages')
   @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   getMessages(

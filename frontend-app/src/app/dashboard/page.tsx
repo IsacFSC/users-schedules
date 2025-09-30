@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../../hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { getMySchedules, downloadScheduleFile, Schedule } from '../../services/scheduleService';
+import { getUnreadMessagesCount } from '../../services/messagingService';
 import { getUsers, User } from '../../services/userService';
 import PrivateRoute from '@/components/PrivateRoute';
 import ScheduleFileManagement from '@/components/ScheduleFileManagement';
@@ -69,6 +70,7 @@ export default function DashboardPage() {
   const [filteredSchedules, setFilteredSchedules] = useState<Schedule[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [schedulesLoading, setSchedulesLoading] = useState(true);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   const fetchData = async () => {
     if (user) {
@@ -107,6 +109,21 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
+    const fetchUnreadMessages = async () => {
+      try {
+        const count = await getUnreadMessagesCount();
+        setUnreadMessagesCount(count);
+      } catch (error) {
+        console.error("Failed to fetch unread messages count", error);
+      }
+    };
+
+    if (user) {
+      fetchUnreadMessages();
+    }
+  }, [user]);
+
+  useEffect(() => {
     const filtered = schedules.filter(schedule =>
       schedule.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -121,6 +138,8 @@ export default function DashboardPage() {
       console.error('Error downloading file:', error);
       showToast('Erro ao baixar o arquivo. Tente novamente.', 'error');
     }
+  };
+
 // Toast simples
 function showToast(message: string, type: 'success' | 'error') {
   const toast = document.createElement('div');
@@ -131,7 +150,6 @@ function showToast(message: string, type: 'success' | 'error') {
     toast.remove();
   }, 3000);
 }
-  };
 
   const handleRefresh = () => {
     fetchData();
@@ -160,8 +178,14 @@ function showToast(message: string, type: 'success' | 'error') {
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white">Painel do Usuário</h1>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Link href="/dashboard/messages" className="bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-center flex items-center">
-                <FaEnvelope className="mr-2" /> Mensagens
+            <Link href="/dashboard/messages" className="relative bg-emerald-500 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded text-center flex items-center">
+              <FaEnvelope className="mr-2" />
+              Mensagens
+              {unreadMessagesCount > 0 && (
+                <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs">
+                  {unreadMessagesCount}
+                </span>
+              )}
             </Link>
             <button
               onClick={handleRefresh}
@@ -254,7 +278,7 @@ function showToast(message: string, type: 'success' | 'error') {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-800">Nenhuma escala encontrada.</p>
+                <p className="text-gray-400">Nenhuma escala encontrada.</p>
               )}
             </div>
           </div>

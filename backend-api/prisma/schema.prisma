@@ -34,6 +34,18 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   file           String?
   fileMimeType   String?
+  readBy         MessageRead[]
+}
+
+model MessageRead {
+  id        Int      @id @default(autoincrement())
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  readAt    DateTime @default(now())
+
+  @@unique([messageId, userId])
 }
 
 model Task {
@@ -84,6 +96,7 @@ model User {
   createdAt     DateTime?          @default(now())
   conversations Conversation[]     @relation("ConversationParticipants")
   messages      Message[]
+  readMessages  MessageRead[]
   Tasks         Task[]
   schedules     UsersOnSchedules[]
   role          Role               @default(USER)
