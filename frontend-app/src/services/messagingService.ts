@@ -51,3 +51,10 @@ export const uploadFile = async (conversationId: number, file: File): Promise<Me
   });
   return data;
 };
+
+export const downloadFile = async (fileName: string) => {
+  const { data } = await api.get(`/messaging/messages/download/${fileName}`, {
+    responseType: 'blob',
+  });
+  return data;
+};

@@ -1,12 +1,11 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { getConversations, getMessages, createMessage, createConversation, uploadFile, Conversation, Message } from '../../../services/messagingService';
+import { getConversations, getMessages, createMessage, createConversation, uploadFile, Conversation, Message, downloadFile } from '../../../services/messagingService';
 import { getUsers, User } from '../../../services/userService';
 import NewConversationModal from '../../../components/NewConversationModal';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
-import { api } from '../../../services/api';
 import PrivateRoute from '@/components/PrivateRoute';
 
 export default function MessagingPage() {
@@ -108,6 +107,21 @@ export default function MessagingPage() {
     }
   };
 
+  const handleDownload = async (fileName: string) => {
+    try {
+      const blob = await downloadFile(fileName);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error("Falha ao baixar o arquivo.", error);
+    }
+  };
+
   const handleBack = () => {
     router.back();
   };
@@ -167,13 +181,13 @@ export default function MessagingPage() {
                   {messages.map((msg) => (
                     <div key={msg.id} className={`mb-2 ${msg.authorId === user?.id ? 'text-right' : 'text-left'}`}>
                       <div className={`inline-block p-2 rounded-lg ${msg.authorId === user?.id ? 'bg-emerald-500' : 'bg-violet-500'}`}>
-                        {msg.file ? (
-                          msg.fileMimeType?.startsWith('image/') ? (
-                            <img src={`${api.defaults.baseURL}/files/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
+                        {msg.file && msg.fileMimeType ? (
+                          msg.fileMimeType.startsWith('image/') ? (
+                            <img src={`${process.env.NEXT_PUBLIC_API_URL}/messaging/messages/download/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
                           ) : (
-                            <a href={`${api.defaults.baseURL}/files/${msg.file}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            <button onClick={() => handleDownload(msg.file!)} className="text-blue-200 hover:underline">
                               {msg.content}
-                            </a>
+                            </button>
                           )
                         ) : (
                           <p>{msg.content}</p>

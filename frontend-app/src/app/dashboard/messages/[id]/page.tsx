@@ -3,9 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getMessages, createMessage, uploadFile, Message } from '../../../../services/messagingService';
+import { getMessages, createMessage, uploadFile, Message, downloadFile } from '../../../../services/messagingService';
 import { useAuth } from '../../../../hooks/useAuth';
-import { api } from '../../../../services/api';
 import PrivateRoute from '@/components/PrivateRoute';
 
 export default function ConversationPage() {
@@ -26,7 +25,7 @@ export default function ConversationPage() {
       const fetchedMessages = await getMessages(conversationId);
       setMessages(fetchedMessages);
     } catch (error) {
-      console.error("Falha ao enviar mensagem.", error);
+      console.error("Falha ao buscar mensagens.", error);
     } finally {
       setLoading(false);
     }
@@ -51,7 +50,22 @@ export default function ConversationPage() {
       }
       fetchMessages();
     } catch (error) {
-      console.error("Failed to send message", error);
+      console.error("Falha ao enviar mensagem.", error);
+    }
+  };
+
+  const handleDownload = async (fileName: string) => {
+    try {
+      const blob = await downloadFile(fileName);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (error) {
+      console.error("Falha ao baixar o arquivo.", error);
     }
   };
 
@@ -76,18 +90,18 @@ export default function ConversationPage() {
                   className={`flex ${msg.authorId === user?.id ? 'justify-end' : 'justify-start'}`}>
                   <div className={`inline-block p-2 rounded-lg ${msg.authorId === user?.id ? 'bg-emerald-500' : 'bg-violet-500'} text-white`}>
                     <p className="font-bold">{msg.author?.name || (msg.authorId === user?.id ? user.name : 'Participante')}</p>
-                    {msg.file ? (
-                      msg.fileMimeType?.startsWith('image/') ? (
-                        <img src={`${api.defaults.baseURL}/files/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
+                    {msg.file && msg.fileMimeType ? (
+                      msg.fileMimeType.startsWith('image/') ? (
+                        <img src={`${process.env.NEXT_PUBLIC_API_URL}/messaging/messages/download/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
                       ) : (
-                        <a href={`${api.defaults.baseURL}/files/${msg.file}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <button onClick={() => handleDownload(msg.file!)} className="text-blue-200 hover:underline">
                           {msg.content}
-                        </a>
+                        </button>
                       )
                     ) : (
                       <p>{msg.content}</p>
                     )}
-                    <p className="text-xs text-gray-600">{new Date(msg.createdAt).toLocaleTimeString()}</p>
+                    <p className="text-xs text-gray-200">{new Date(msg.createdAt).toLocaleTimeString()}</p>
                   </div>
                 </div>
               ))}
