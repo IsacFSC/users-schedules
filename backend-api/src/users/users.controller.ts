@@ -31,32 +31,35 @@ import { FileInterceptor } from '@nestjs/platform-express';
 // > cadastrar usuario
 // > Deletar usuario
 @UseGuards(AuthTokenGuard, RolesGuard)
-@Roles(Role.ADMIN)
 @Controller('users')
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
 
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   @Get('/All')
   findAllUsers(
     @Query() paginationDto: PaginationDto,
     @Query('search') search?: string,
     @Query('active') active?: string,
-    @Query('role') role?: string
+    @Query('role') role?: string,
   ) {
     return this.userService.findAll(paginationDto, search, active, role);
   }
 
+  @Roles(Role.ADMIN)
   @Get(':id')
   findOneUser(@Param('id', ParseIntPipe) id: number) {
     console.log('Token teste: ', process.env.TOKEN_KEY);
     return this.userService.findOne(id);
   }
 
+  @Roles(Role.ADMIN)
   @Post()
   createUser(@Body() createUserDto: CreateUserDto) {
     return this.userService.create(createUserDto);
   }
 
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   @Patch(':id')
   updateUser(
     @Param('id', ParseIntPipe) id: number,
@@ -66,6 +69,7 @@ export class UsersController {
     return this.userService.update(id, updateUserDto, user);
   }
 
+  @Roles(Role.ADMIN)
   @Patch('admin/:id')
   updateUserByAdmin(
     @Param('id', ParseIntPipe) id: number,
@@ -74,16 +78,19 @@ export class UsersController {
     return this.userService.updateUserByAdmin(id, updateUserByAdminDto);
   }
 
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   @Delete('avatar')
   async removeAvatar(@ActiveUser() user: User) {
     return this.userService.removeAvatarImage(user);
   }
 
+  @Roles(Role.ADMIN)
   @Delete(':id')
   deleteUser(@Param('id', ParseIntPipe) id: number, @ActiveUser() user: User) {
     return this.userService.delete(id, user);
   }
 
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   @UseInterceptors(FileInterceptor('file'))
   @Post('upload')
   async uploadAvatar(

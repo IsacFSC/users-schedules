@@ -84,6 +84,7 @@ export default function DashboardPage() {
         const axiosError = error as import('axios').AxiosError;
         if (axiosError?.response?.status === 403) {
           alert('Sua sessão expirou ou você não tem permissão. Faça login novamente.');
+          signOut();
         } else {
           alert('Falha ao buscar escalas. Tente novamente.');
         }

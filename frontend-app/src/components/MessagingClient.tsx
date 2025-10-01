@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { FaDownload } from 'react-icons/fa';
 import { getConversations, getMessages, createMessage, createConversation, uploadFile, Conversation, Message, downloadFile } from '../services/messagingService';
 import { getUsers, User } from '../services/userService';
@@ -27,6 +27,15 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
   const [newMessage, setNewMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [view, setView] = useState<'conversations' | 'messages'>('conversations');
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const fetchConversations = useCallback(async () => {
     try {
@@ -67,7 +76,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
       if (selectedConversation) {
         handleSelectConversation(selectedConversation, true);
       }
-    }, 5000);
+    }, 1000);
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
@@ -166,7 +175,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
       {error && <p className="text-red-500">{error}</p>}
       {successMessage && <p className="text-green-500">{successMessage}</p>}
 
-      <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-4 overflow-hidden">
         <div className={`md:col-span-1 ${view === 'messages' && 'hidden md:block'}`}>
           <h2 className="text-xl font-bold mb-4 dark:text-gray-200">Conversas</h2>
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4">
@@ -174,7 +183,13 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
               <ul>
                 {conversations.map((convo) => (
                   <li key={convo.id} onClick={() => handleSelectConversation(convo)} className="cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
-                    {convo.subject}
+                    {convo.subject} - {convo.participants.map(p => p.name).find(name => name !== user?.name) || 'Sem Participantes'}
+                    {selectedConversation?.id === convo.id && <span className="text-blue-500 ml-2 font-bold">●</span>}
+                    {convo.messages && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Última mensagem: {new Date(convo.messages[convo.messages.length - 1].createdAt).toLocaleString()}
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -186,7 +201,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
 
         <div className={`md:col-span-2 ${view === 'conversations' && 'hidden md:block'}`}>
           {selectedConversation ? (
-            <div className="flex flex-col h-full">
+            <div className="flex flex-col h-[70vh] overflow-y-scroll">
               <div className="flex items-center mb-4">
                 <button onClick={() => setView('conversations')} className="md:hidden mr-4 text-gray-800 dark:text-gray-200">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -216,6 +231,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
               <div className="flex">
                 <input
@@ -228,14 +244,19 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
                  <input
                   type="file"
                   onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)}
-                  className="hidden"
+                  className="text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-2"
                   id="file-upload"
                 />
-                <label htmlFor="file-upload" className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2 cursor-pointer">
-                  Anexar
+                <label htmlFor="file-upload" className="bg-transparent hover:bg-gray-500 text-white font-bold py-3 px-3 border-gray-600 border-2 rounded ml-2 cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                  </svg>
+                  <span className="not-sr-only"></span>
                 </label>
-                <button onClick={handleSendMessage} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-2">
-                  Enviar
+                <button onClick={handleSendMessage} className="bg-blue-700 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded ml-2">
+                  <svg className="icone-enviar" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
                 </button>
               </div>
             </div>

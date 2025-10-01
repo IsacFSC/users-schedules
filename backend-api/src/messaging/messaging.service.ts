@@ -173,7 +173,7 @@ export class MessagingService {
     }
 
     const fileName = `${Date.now()}-${file.originalname}`;
-    const filePath = join(process.cwd(), 'files', fileName);
+    const filePath = join(process.cwd(), 'backend-api', 'files', fileName);
 
     try {
       writeFileSync(filePath, file.buffer);
@@ -206,7 +206,7 @@ export class MessagingService {
       throw new HttpException('Arquivo não encontrado!', HttpStatus.NOT_FOUND);
     }
 
-    const filePath = join(process.cwd(), 'files', fileName);
+    const filePath = join(process.cwd(), 'backend-api', 'files', fileName);
 
     if (!existsSync(filePath)) {
       throw new HttpException('Arquivo não encontrado no servidor!', HttpStatus.NOT_FOUND);
