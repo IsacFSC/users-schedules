@@ -23,16 +23,56 @@ import { AxiosError } from 'axios';
 import PrivateRoute from '@/components/PrivateRoute';
 import { downloadScheduleFile } from '../../../services/scheduleFileService';
 import { FaPlus, FaArrowLeft, FaTasks, FaUsers, FaDownload, FaEdit, FaTrash } from 'react-icons/fa';
+import ScheduleFileManagement from '@/components/ScheduleFileManagement';
+
+// Função para transformar links em <a> (igual admin)
+const linkify = (text: string) => {
+  if (!text) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const maxLength = 32;
+  return text.split('\n').map((line, index) => (
+    <div key={index}>
+      {line.split(urlRegex).map((part, i) => {
+        if (part.match(urlRegex)) {
+          const display = part.length > maxLength ? part.slice(0, maxLength) + '...' : part;
+          return (
+            <a
+              key={i}
+              href={part}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-900 font-bold hover:underline break-all max-w-[160px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px] bg-emerald-300 p-1 rounded"
+              title={part}
+            >
+              {display}
+            </a>
+          );
+        }
+        return part;
+      })}
+    </div>
+  ));
+};
+
+const groupSchedulesByDate = (schedules: Schedule[]) => {
+  const grouped: { [date: string]: Schedule[] } = {};
+  schedules.forEach(schedule => {
+    const date = new Date(schedule.startTime).toLocaleDateString('pt-BR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    if (!grouped[date]) {
+      grouped[date] = [];
+    }
+    grouped[date].push(schedule);
+  });
+  return grouped;
+};
 
 export default function ScheduleManagementPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'ADMIN') {
-      router.push('/login');
-    }
-  }, [isAuthenticated, user, router]);
 
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -40,6 +80,7 @@ export default function ScheduleManagementPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -131,20 +172,10 @@ export default function ScheduleManagementPage() {
         console.log('[UPDATE ESCALA] Response:', response);
         setSuccessMessage('Escala atualizada com sucesso!');
       } else {
-      console.log('[CRIAR ESCALA] Payload:', data);
-      // console.log('[CRIAR ESCALA] Authorization:', api.defaults.headers['Authorization']);
-      try {
-        const response = await scheduleService.create(data);
+        console.log('[CRIAR ESCALA] Payload:', data);
+        const response = await createSchedule(data);
         console.log('[CRIAR ESCALA] Response:', response);
-          setSuccessMessage('Escala criada com sucesso!');
-        } catch (error: any) {
-          if (error.response) {
-            console.error('[CRIAR ESCALA] Response Error:', error.response.status, error.response.data);
-          } else {
-            console.error('[CRIAR ESCALA] Error:', error);
-          }
-          throw error;
-        }
+        setSuccessMessage('Escala criada com sucesso!');
       }
       await fetchAllData();
       handleCloseFormModal();
@@ -176,7 +207,6 @@ export default function ScheduleManagementPage() {
       await addUserToSchedule(selectedSchedule.id, userId, skill);
       setSuccessMessage('Usuário adicionado com sucesso!');
       setError(null);
-      // Optimistically update the selected schedule's users array
       const userToAdd = allUsers.find(u => u.id === userId);
       if (userToAdd) {
         setSelectedSchedule(prev => {
@@ -187,11 +217,11 @@ export default function ScheduleManagementPage() {
           };
         });
       }
-      await fetchAllData(); // Refresh all data in the background
+      await fetchAllData();
     } catch (error) {
       const axiosError = error as AxiosError;
-  const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
-  setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao adicionar usuário.');
+      const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao adicionar usuário.');
       setSuccessMessage(null);
     } finally {
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -204,7 +234,6 @@ export default function ScheduleManagementPage() {
       await removeUserFromSchedule(selectedSchedule.id, userId);
       setSuccessMessage('Usuário removido com sucesso!');
       setError(null);
-      // Optimistically update the selected schedule's users array
       setSelectedSchedule(prev => {
         if (!prev) return null;
         return {
@@ -212,11 +241,11 @@ export default function ScheduleManagementPage() {
           users: prev.users.filter(u => u.userId !== userId)
         };
       });
-      await fetchAllData(); // Refresh all data in the background
+      await fetchAllData();
     } catch (error) {
       const axiosError = error as AxiosError;
-  const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
-  setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao remover usuário.');
+      const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao remover usuário.');
     } finally {
       setTimeout(() => setSuccessMessage(null), 3000);
     }
@@ -230,8 +259,8 @@ export default function ScheduleManagementPage() {
       await fetchAllData();
     } catch (error) {
       const axiosError = error as AxiosError;
-  const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
-  setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao atribuir tarefa.');
+      const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao atribuir tarefa.');
     } finally {
       setTimeout(() => setSuccessMessage(null), 3000);
     }
@@ -245,14 +274,12 @@ export default function ScheduleManagementPage() {
       await fetchAllData();
     } catch (error) {
       const axiosError = error as AxiosError;
-  const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
-  setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao desatribuir tarefa.');
+      const errorMessage = axiosError.response?.data && typeof axiosError.response.data === 'object' && 'message' in axiosError.response.data ? (axiosError.response.data as any).message : undefined;
+      setError(typeof errorMessage === 'string' ? errorMessage : 'Falha ao desatribuir tarefa.');
     } finally {
       setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
-
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleString();
 
   const handleBack = () => {
     router.back();
@@ -262,9 +289,15 @@ export default function ScheduleManagementPage() {
     return <p>Redirecionando para a página de login...</p>;
   }
 
+  const filteredSchedules = schedules.filter(schedule =>
+    schedule.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const groupedSchedules = groupSchedulesByDate(filteredSchedules);
+
   return (
     <PrivateRoute>
-      <div className="p-8">
+      <div className="min-h-screen bg-gray-900 p-4 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-gray-200">Gerenciamento de Escalas</h1>
           <div className="flex space-x-4"> {/* Group buttons */}
@@ -280,48 +313,100 @@ export default function ScheduleManagementPage() {
           </div>
         </div>
 
-        {loading && <p>Carregando...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-        {successMessage && <p className="text-green-500">{successMessage}</p>}
+        <div className="mt-8">
+          <input
+            type="text"
+            placeholder="Buscar escalas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-md"
+          />
+        </div>
 
-        {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {schedules.map((schedule) => (
-              <div key={schedule.id} className="bg-teal-200 hover:bg-teal-400 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex flex-col justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{schedule.name}</h2>
-                  <p className="text-gray-700 mt-2 h-12 overflow-hidden">{schedule.description}</p>
-                  <div className="mt-4 space-y-1 text-gray-800">
-                    <p><strong>Data Inicial:</strong> {formatDate(schedule.startTime)}</p>
-                    <p><strong>Data Final:</strong> {formatDate(schedule.endTime)}</p>
-                    <p><strong>Usuários:</strong> {(Array.isArray(schedule.users) ? schedule.users.length : 0)}</p>
-                    <p><strong>Tarefas:</strong> {allTasks.filter(t => t.scheduleId === schedule.id).length}</p>
+        {loading ? (
+          <p className="mt-8">Carregando...</p>
+        ) : error ? (
+          <p className="text-red-500">{error}</p>
+        ) : (
+          <div className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4 text-white">Suas Escalas</h2>
+            <div className="space-y-8">
+              {Object.keys(groupedSchedules).length > 0 ? (
+                Object.keys(groupedSchedules).map(date => (
+                  <div key={date}>
+                    <h3 className="text-xl font-semibold text-gray-200 mb-4 border-b-2 pb-2">{date}</h3>
+                    <div className="space-y-4">
+                      {groupedSchedules[date].map(schedule => (
+                        <div key={schedule.id} className="p-6 rounded-lg shadow-blue-600 shadow-lg bg-orange-200 hover:bg-orange-300 transition-shadow">
+                          <div className="flex justify-between items-start flex-wrap">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-gray-900">{schedule.name}</h3>
+                              <p className="text-gray-700 mt-2">{schedule.description}</p>
+                              <p className="text-sm text-gray-600 mt-4">
+                                {new Date(schedule.startTime).toLocaleTimeString()} - {new Date(schedule.endTime).toLocaleTimeString()}
+                              </p>
+                            </div>
+                            <div className="flex items-center space-x-2 mt-4 md:mt-0">
+                              <button onClick={() => handleOpenTaskModal(schedule)} className="text-sm text-white bg-emerald-700 hover:bg-emerald-500 border rounded-3xl p-1 flex items-center" title="Gerenciar tarefas">
+                                <FaTasks />
+                                <span className='ml-1 hidden sm:block'> Músicas</span>
+                              </button>
+                              <button onClick={() => handleOpenUserModal(schedule)} className="text-sm text-white bg-blue-700 hover:bg-blue-500 border rounded-3xl p-1 flex items-center" title="Gerenciar usuários">
+                                <FaUsers />
+                                <span className='ml-1 hidden sm:block'> Ministros</span>
+                              </button>
+                              {schedule.file && (
+                                <button
+                                  onClick={() => handleDownloadClick(schedule.id)}
+                                  className="text-sm text-white bg-blue-500 hover:bg-blue-700 border rounded-3xl p-1 flex items-center" title="Baixar Anexo"
+                                >
+                                  <FaDownload />
+                                  <span className='ml-1 hidden sm:block'>  Baixar escala</span>
+                                </button>
+                              )}
+                              <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1 flex items-center" title="Editar">
+                                <FaEdit />
+                                <span className='ml-1 hidden sm:block'> Editar</span>
+                              </button>
+                              <button onClick={() => handleDelete(schedule.id)} className="text-sm text-white bg-red-600 hover:bg-red-900 border rounded-3xl p-1 flex items-center" title="Deletar">
+                                <FaTrash />
+                                <span className='ml-1 hidden sm:block'> Deletar</span>
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <h4 className="font-semibold text-gray-900">Usuários nesta escala:</h4>
+                            <ul className="list-disc list-inside">
+                              {schedule.users.map(userOnSchedule => (
+                                <li key={userOnSchedule.userId} className="text-gray-800">{userOnSchedule.user.name} - {userOnSchedule.skill}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          {schedule.tasks && schedule.tasks.length > 0 && (
+                            <div className="mt-4">
+                              <h4 className="font-semibold text-gray-900">Músicas nesta escala:</h4>
+                              <ul className="list-disc list-inside">
+                                {schedule.tasks.map(task => (
+                                  <li key={task.id} className="text-gray-800 mb-2">
+                                    <div className="font-bold text-lg mb-1 inline">{task.name}</div>
+                                    <div className="space-y-1">
+                                      {task.description && linkify(task.description)}
+                                    </div> 
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <div className="mt-6 flex justify-end flex-wrap gap-2">
-                  <button onClick={() => handleOpenTaskModal(schedule)} className="text-sm text-white bg-emerald-700 hover:bg-emerald-500 border rounded-3xl p-1 flex items-center" title="Gerenciar tarefas">
-                    <FaTasks />
-                  </button>
-                  <button onClick={() => handleOpenUserModal(schedule)} className="text-sm text-white bg-blue-700 hover:bg-blue-500 border rounded-3xl p-1 flex items-center" title="Gerenciar usuários">
-                    <FaUsers />
-                  </button>
-                  {schedule.file && (
-                    <button
-                      onClick={() => handleDownloadClick(schedule.id)}
-                      className="text-sm text-white bg-blue-500 hover:bg-blue-700 border rounded-3xl p-1 flex items-center" title="Baixar Anexo"
-                    >
-                      <FaDownload />
-                    </button>
-                  )}
-                  <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1 flex items-center" title="Editar">
-                    <FaEdit />
-                  </button>
-                  <button onClick={() => handleDelete(schedule.id)} className="text-sm text-white bg-red-600 hover:bg-red-900 border rounded-3xl p-1 flex items-center" title="Deletar">
-                    <FaTrash />
-                  </button>
-                </div>
-              </div>
-            ))}
+                )) 
+              ) : (
+                <p className="text-gray-400">Nenhuma escala encontrada.</p>
+              )}
+            </div>
           </div>
         )}
 

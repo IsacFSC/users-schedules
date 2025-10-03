@@ -27,7 +27,7 @@ const linkify = (text: string) => {
               href={part}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-600 hover:underline break-all max-w-[160px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px]"
+              className="text-blue-600 hover:text-blue-900 font-bold hover:underline break-all max-w-[160px] sm:max-w-[240px] md:max-w-[320px] lg:max-w-[400px] bg-emerald-300 p-1 rounded"
               title={part}
             >
               {display}
@@ -227,7 +227,7 @@ function showToast(message: string, type: 'success' | 'error') {
                     <h3 className="text-xl font-semibold text-gray-200 mb-4 border-b-2 pb-2">{date}</h3>
                     <div className="space-y-4">
                       {groupedSchedules[date].map(schedule => (
-                        <div key={schedule.id} className="p-6 rounded-lg shadow-lg shadow-inner bg-teal-200 hover:bg-teal-400 transition-shadow">
+                        <div key={schedule.id} className="p-6 rounded-lg shadow-blue-600 shadow-lg bg-orange-200 hover:bg-orange-300 transition-shadow">
                           <div className="flex justify-between items-start flex-wrap">
                             <div className="flex-1">
                               <h3 className="text-xl font-bold text-gray-900">{schedule.name}</h3>
@@ -239,7 +239,7 @@ function showToast(message: string, type: 'success' | 'error') {
                             <div className="flex items-center space-x-2 mt-4 md:mt-0">
                               <button
                                 onClick={() => handleDownload(schedule.id)}
-                                className='bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center'
+                                className='bg-blue-600 hover:bg-blue-700 text-white  rounded-3xl p-1.5 flex items-center'
                               >
                                 <FaDownload className="mr-2" /> Baixar Escala
                               </button>
@@ -250,7 +250,7 @@ function showToast(message: string, type: 'success' | 'error') {
                             <h4 className="font-semibold text-gray-900">Usuários nesta escala:</h4>
                             <ul className="list-disc list-inside">
                               {schedule.users.map(userOnSchedule => (
-                                <li key={userOnSchedule.userId} className="text-gray-800">{userOnSchedule.user.name}</li>
+                                <li key={userOnSchedule.userId} className="text-gray-800">{userOnSchedule.user.name} - {userOnSchedule.skill}</li>
                               ))}
                             </ul>
                           </div>
@@ -260,13 +260,10 @@ function showToast(message: string, type: 'success' | 'error') {
                               <ul className="list-disc list-inside">
                                 {schedule.tasks.map(task => (
                                   <li key={task.id} className="text-gray-800 mb-2">
-                                    <div className="font-bold text-lg mb-1">{task.name}</div>
+                                    <div className="font-bold text-lg mb-1 inline">{task.name}</div>
                                     <div className="space-y-1">
                                       {task.description && linkify(task.description)}
-                                    </div>
-                                    <div className="mt-1">
-                                      <span className={`font-semibold ${task.status === 'PENDING' ? 'text-yellow-600' : task.status === 'APPROVED' ? 'text-green-600' : 'text-red-600'}`}>{task.status}</span>
-                                    </div>
+                                    </div>                                    
                                   </li>
                                 ))}
                               </ul>

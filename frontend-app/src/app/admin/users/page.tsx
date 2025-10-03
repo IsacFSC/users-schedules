@@ -141,6 +141,24 @@ export default function UserManagementPage() {
   return (
     <PrivateRoute>
       <div className="p-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-gray-200">Gestão de Usuários</h1>
+          <div className="flex space-x-4">
+            <button
+              onClick={handleBack}
+              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex items-center"
+            >
+              <FaArrowLeft className="mr-2" /> Voltar
+            </button>
+            <button
+              onClick={() => handleOpenModal()}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
+            >
+              <FaPlus className="mr-2" /> Criar Usuário
+            </button>
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-4 mb-6 items-center">
           <input
             type="text"
@@ -174,24 +192,7 @@ export default function UserManagementPage() {
           >
             <FaSearch className="mr-2" /> Buscar
           </button>
-        </div>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-200">Gestão de Usuários</h1>
-          <div className="flex space-x-4">
-            <button
-              onClick={handleBack}
-              className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex items-center"
-            >
-              <FaArrowLeft className="mr-2" /> Voltar
-            </button>
-            <button
-              onClick={() => handleOpenModal()}
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center"
-            >
-              <FaPlus className="mr-2" /> Criar Usuário
-            </button>
-          </div>
-        </div>
+        </div>  
 
         {pageLoading && <p>Carregando usuários...</p>}
         {error && <p className="text-red-500">{error}</p>}
@@ -206,16 +207,16 @@ export default function UserManagementPage() {
             <table className="min-w-full leading-normal">
               <thead>
                 <tr>
-                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-600 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
+                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-800 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
                     Usuários
                   </th>
-                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-600 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
+                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-800 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
                     Perfil
                   </th>
-                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-600 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
+                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-800 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-600 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
+                  <th className="px-5 py-3 border-b-2 border-gray-400 bg-gray-800 text-left text-xs font-semibold text-gray-200 uppercase tracking-wider">
                     Ações
                   </th>
                 </tr>

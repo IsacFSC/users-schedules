@@ -324,13 +324,13 @@ export default function TaskManagementPage() {
 
         {!loading && !error && (
           <>
-            <div className="bg-gray-700 shadow-md rounded-lg overflow-hidden">
+            <div className="bg-gray-700 shadow-md rounded-lg overflow-visible">
               <table className="min-w-full leading-normal">
                 <thead>
                   <tr>
                     <th className="px-5 py-3 border-b-2 border-gray-500 bg-gray-800 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Tarefa</th>
                     <th className="px-5 py-3 border-b-2 border-gray-500 bg-gray-800 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Status</th>
-                    <th className="px-5 py-3 border-b-2 border-gray-500 bg-gray-800 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Atribuído a</th>
+                    <th className="px-5 py-3 border-b-2 border-gray-500 bg-gray-800 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Criado por</th>
                     <th className="px-5 py-3 border-b-2 border-gray-500 bg-gray-800 text-left text-xs font-semibold text-gray-300 uppercase tracking-wider">Ações</th>
                   </tr>
                 </thead>
@@ -360,7 +360,7 @@ export default function TaskManagementPage() {
                                   <span className="md:inline">Ações</span>
                                   <svg className="ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                                 </Menu.Button>
-                                <Menu.Items className="absolute z-10 left-0 mt-2 w-44 origin-top-right bg-gray-300 border border-gray-400 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none">
+                                <Menu.Items className="absolute z-50 left-0 mt-2 w-44 origin-top-right bg-gray-300 border border-gray-400 divide-y divide-gray-100 rounded-md shadow-lg focus:outline-none">
                                   <div className="py-1 w-full">
                                     <Menu.Item>
                                       {({ active }) => (
