@@ -131,12 +131,11 @@ export default function ScheduleManagementPage() {
         console.log('[UPDATE ESCALA] Response:', response);
         setSuccessMessage('Escala atualizada com sucesso!');
       } else {
-        console.log('[CRIAR ESCALA] Payload:', data);
-        // Log do header Authorization
-        console.log('[CRIAR ESCALA] Authorization:', api.defaults.headers['Authorization']);
-        try {
-          const response = await createSchedule(data);
-          console.log('[CRIAR ESCALA] Response:', response);
+      console.log('[CRIAR ESCALA] Payload:', data);
+      // console.log('[CRIAR ESCALA] Authorization:', api.defaults.headers['Authorization']);
+      try {
+        const response = await scheduleService.create(data);
+        console.log('[CRIAR ESCALA] Response:', response);
           setSuccessMessage('Escala criada com sucesso!');
         } catch (error: any) {
           if (error.response) {

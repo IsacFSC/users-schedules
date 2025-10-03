@@ -7,6 +7,7 @@ export interface Conversation {
   updatedAt: string;
   participants: any[];
   messages: any[];
+  hasUnreadMessages?: boolean;
 }
 
 export interface Message {

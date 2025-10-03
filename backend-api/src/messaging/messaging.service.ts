@@ -42,7 +42,7 @@ export class MessagingService {
   }
 
   async getConversations(userId: number) {
-    return this.prisma.conversation.findMany({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
@@ -57,8 +57,20 @@ export class MessagingService {
             createdAt: 'desc',
           },
           take: 1,
+          include: {
+            readBy: true,
+          },
         },
       },
+    });
+
+    return conversations.map((conversation) => {
+      const lastMessage = conversation.messages[0];
+      const hasUnreadMessages =
+        lastMessage &&
+        lastMessage.authorId !== userId &&
+        !lastMessage.readBy.some((read) => read.userId === userId);
+      return { ...conversation, hasUnreadMessages };
     });
   }
 

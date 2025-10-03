@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../../../hooks/useAuth';
 import PrivateRoute from '@/components/PrivateRoute';
 import { FaSignOutAlt, FaCalendarAlt, FaTasks, FaEnvelope } from 'react-icons/fa';
+import MessageIcon from '@/components/MessageIcon';
 
 export default function LeaderDashboardPage() {
   const { user, signOut, isAuthenticated, loading } = useAuth();
@@ -28,12 +29,15 @@ export default function LeaderDashboardPage() {
       <div className="min-h-screen bg-gray-900 p-4 md:p-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white">Painel do Líder</h1>
-          <button
-            onClick={signOut}
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center"
-          >
-            <FaSignOutAlt className="mr-2" /> Sair
-          </button>
+          <div className="flex items-center gap-4">
+            <MessageIcon />
+            <button
+              onClick={signOut}
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded flex items-center"
+            >
+              <FaSignOutAlt className="mr-2" /> Sair
+            </button>
+          </div>
         </div>
         <p className="mt-2 text-gray-200">Olá, {user?.name}!</p>
         <p className="mt-2 text-gray-200">Você está logado como: {user?.role}</p>

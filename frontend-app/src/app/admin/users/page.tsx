@@ -4,9 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   getUsers,
   createUser,
-  updateUser,
   deleteUser,
-  updateUserStatus,
+  updateUserByAdmin,
   User,
 } from '../../../services/userService';
 import Modal from '../../../components/Modal';
@@ -87,7 +86,7 @@ export default function UserManagementPage() {
   const handleFormSubmit = async (data: any) => {
     try {
       if (editingUser) {
-        await updateUser(editingUser.id, data);
+        await updateUserByAdmin(editingUser.id, data);
         setSuccessMessage('Usuário atualizado com sucesso!');
       } else {
         await createUser(data);
@@ -120,7 +119,7 @@ export default function UserManagementPage() {
 
   const handleToggleActiveStatus = async (id: number, currentStatus: boolean) => {
     try {
-      await updateUserStatus(id, currentStatus);
+      await updateUserByAdmin(id, { active: !currentStatus });
       setSuccessMessage('Status do usuário atualizado com sucesso!');
       await fetchUsers(); // Refresh list
     } catch (error) {

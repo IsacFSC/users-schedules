@@ -182,7 +182,12 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
             {conversations.length > 0 ? (
               <ul>
                 {conversations.map((convo) => (
-                  <li key={convo.id} onClick={() => handleSelectConversation(convo)} className="cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
+                  <li
+                    key={convo.id}
+                    onClick={() => handleSelectConversation(convo)}
+                    className={`cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 ${
+                      convo.hasUnreadMessages ? 'font-bold border-b-sky-700 bg-emerald-900 border-1 rounded-md' : ''
+                    }`}>
                     {convo.subject} - {convo.participants.map(p => p.name).find(name => name !== user?.name) || 'Sem Participantes'}
                     {selectedConversation?.id === convo.id && <span className="text-blue-500 ml-2 font-bold">●</span>}
                     {convo.messages && (

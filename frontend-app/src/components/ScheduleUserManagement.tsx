@@ -34,6 +34,14 @@ export default function ScheduleUserManagement({ schedule, allUsers, onAddUser, 
     return { assignedUsers: assigned, availableUsers: available };
   }, [schedule, allUsers]);
 
+  const assignedUserSkills = useMemo(() => {
+    const skillMap = new Map<number, Skill>();
+    schedule.users.forEach(u => {
+      skillMap.set(u.userId, u.skill);
+    });
+    return skillMap;
+  }, [schedule.users]);
+
   const handleSkillChange = (userId: number, skill: Skill) => {
     setUserSkills(prev => ({ ...prev, [userId]: skill }));
   };
@@ -51,30 +59,36 @@ export default function ScheduleUserManagement({ schedule, allUsers, onAddUser, 
       <div>
         <h4 className="font-semibold text-lg mb-2 text-gray-200">Usuários Atribuídos</h4>
         <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-          {assignedUsers.length > 0 ? assignedUsers.map(user => (
-            <div key={user.id} className="flex items-center justify-between bg-gray-700 p-2 rounded-md">
-              <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-blue-500 text-white text-sm font-bold mr-2">
-                  {user.avatar ? (
-                    <img
-                      className="w-full h-full object-cover"
-                      src={`${api.defaults.baseURL}/files/${user.avatar}`}
-                      alt="User avatar"
-                    />
-                  ) : (
-                    getInitials(user.name)
-                  )}
+          {assignedUsers.length > 0 ? assignedUsers.map(user => {
+            const skill = assignedUserSkills.get(user.id);
+            const formattedSkill = skill ? `(${skill.replace(/_/g, ' ')})` : '';
+
+            return (
+              <div key={user.id} className="flex items-center justify-between bg-gray-700 p-2 rounded-md">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-blue-500 text-white text-sm font-bold mr-2">
+                    {user.avatar ? (
+                      <img
+                        className="w-full h-full object-cover"
+                        src={`${api.defaults.baseURL}/files/${user.avatar}`}
+                        alt="User avatar"
+                      />
+                    ) : (
+                      getInitials(user.name)
+                    )}
+                  </div>
+                  <span className="text-gray-200">{user.name}</span>
+                  {skill && <span className="text-xs text-gray-400 ml-2">{formattedSkill}</span>}
                 </div>
-                <span className="text-gray-200">{user.name}</span>
+                <button
+                  onClick={() => onRemoveUser(user.id)}
+                  className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                >
+                  Remover
+                </button>
               </div>
-              <button
-                onClick={() => onRemoveUser(user.id)}
-                className="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
-              >
-                Remover
-              </button>
-            </div>
-          )) : <p className="text-sm text-gray-400">Nenhum usuário atribuído.</p>}
+            );
+          }) : <p className="text-sm text-gray-400">Nenhum usuário atribuído.</p>}
         </div>
       </div>
 

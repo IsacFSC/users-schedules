@@ -47,7 +47,7 @@ export const deleteUser = async (id: number): Promise<void> => {
   await api.delete(`/users/${id}`);
 };
 
-export const updateUserStatus = async (id: number, active: boolean): Promise<User> => {
-  const { data } = await api.patch(`/users/admin/${id}`, { active });
+export const updateUserByAdmin = async (id: number, userData: Partial<User>): Promise<User> => {
+  const { data } = await api.patch(`/users/admin/${id}`, userData);
   return data;
 };
