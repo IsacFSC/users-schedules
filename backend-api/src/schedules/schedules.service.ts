@@ -48,7 +48,8 @@ export class SchedulesService {
     }
 
     const fileName = `${Date.now()}-${file.originalname}`;
-    const uploadPath = join(process.cwd(), 'backend-api', 'files');
+    // Usa uma variável de ambiente para o caminho ou um padrão local
+    const uploadPath = process.env.UPLOAD_PATH || join(process.cwd(), 'backend-api', 'files');
     const filePath = join(uploadPath, fileName);
 
     try {
