@@ -218,14 +218,9 @@ export class MessagingService {
       throw new HttpException('Arquivo não encontrado!', HttpStatus.NOT_FOUND);
     }
 
-    const filePath = join(process.cwd(), 'backend-api', 'files', fileName);
-
-    if (!existsSync(filePath)) {
-      throw new HttpException('Arquivo não encontrado no servidor!', HttpStatus.NOT_FOUND);
-    }
-
     res.setHeader('Content-Type', message.fileMimeType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${message.content}"`);
-    createReadStream(filePath).pipe(res);
+    // Envia o buffer do banco de dados diretamente
+    res.send(message.fileData);
   }
 }

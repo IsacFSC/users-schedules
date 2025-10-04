@@ -4,7 +4,7 @@ import { Response } from 'express';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { writeFileSync, createReadStream, existsSync, mkdirSync } from 'fs';
+import { createReadStream, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { Skill } from '@prisma/client';
 
@@ -48,28 +48,14 @@ export class SchedulesService {
     }
 
     const fileName = `${Date.now()}-${file.originalname}`;
-    // Usa uma variável de ambiente para o caminho ou um padrão local
-    const uploadPath = process.env.UPLOAD_PATH || join(process.cwd(), 'backend-api', 'files');
-    const filePath = join(uploadPath, fileName);
-
-    try {
-      // Garante que o diretório de upload exista
-      if (!existsSync(uploadPath)) {
-        mkdirSync(uploadPath, { recursive: true });
-      }
-      writeFileSync(filePath, file.buffer);
-    } catch (error) {
-      throw new HttpException(
-        'Falha ao salvar o arquivo!',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
 
     const updatedSchedule = await this.prisma.schedule.update({
       where: { id: scheduleId },
       data: { 
         file: fileName,
-        fileMimeType: file.mimetype 
+        fileMimeType: file.mimetype,
+        // Salva o buffer do arquivo no banco de dados
+        fileData: file.buffer,
       },
     });
 
@@ -114,6 +100,8 @@ export class SchedulesService {
           conversationId: conversation.id,
           file: fileName,
           fileMimeType: file.mimetype,
+          // Salva o buffer do arquivo na mensagem também
+          fileData: file.buffer,
         }
       });
     }
@@ -137,15 +125,10 @@ export class SchedulesService {
       throw new HttpException('Arquivo não encontrado para esta escala!', HttpStatus.NOT_FOUND);
     }
 
-    const filePath = resolve(process.cwd(), 'backend-api', 'files', schedule.file);
-
-    if (!existsSync(filePath)) {
-      throw new HttpException('Arquivo não encontrado no servidor!', HttpStatus.NOT_FOUND);
-    }
-
     res.setHeader('Content-Disposition', `attachment; filename="${schedule.file}"`);
     res.setHeader('Content-Type', schedule.fileMimeType || 'application/octet-stream');
-    createReadStream(filePath).pipe(res);
+    // Envia o buffer do banco de dados diretamente
+    res.send(schedule.fileData);
   }
 
   async findSchedulesByUser(userId: number) {
