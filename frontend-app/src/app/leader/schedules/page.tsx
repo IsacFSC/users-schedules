@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../../../hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { getMySchedules, downloadScheduleFile, Schedule, updateSchedule, uploadScheduleFile } from '../../../services/scheduleService';
 import { getUnreadMessagesCount } from '../../../services/messagingService';
-import { getUsers, User } from '../../../services/userService';
 import PrivateRoute from '@/components/PrivateRoute';
-import ScheduleFileManagement from '@/components/ScheduleFileManagement';
 import { FaEnvelope, FaSync, FaSignOutAlt, FaDownload, FaFileUpload, FaArrowLeft } from 'react-icons/fa';
 import { Menu } from '@headlessui/react';
 import Modal from '../../../components/Modal';
@@ -79,6 +77,7 @@ export default function LeaderScheduleManagementPage() {
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
     if (user) {
@@ -126,7 +125,9 @@ export default function LeaderScheduleManagementPage() {
   const handleDownload = async (scheduleId: number) => {
     try {
       await downloadScheduleFile(scheduleId);
-      showToast('Escala baixada com sucesso!', 'success');
+      // A função downloadScheduleFile já trata o download,
+      // então a notificação de sucesso pode não ser necessária aqui
+      // ou pode ser mostrada antes do início do download.
     } catch (error) {
       console.error('Error downloading file:', error);
       showToast('Erro ao baixar o arquivo. Tente novamente.', 'error');
@@ -148,37 +149,24 @@ export default function LeaderScheduleManagementPage() {
     fetchData();
   }
 
-  const handleOpenFormModal = (schedule: Schedule | null = null) => {
+  const handleAttachFileClick = (schedule: Schedule) => {
     setSelectedSchedule(schedule);
-    setIsFormModalOpen(true);
-  };
-  const handleCloseFormModal = () => setIsFormModalOpen(false);
-
-  const handleFormSubmit = async (data: any) => {
-    if (!selectedSchedule) return;
-    try {
-      await updateSchedule(selectedSchedule.id, data);
-      setSuccessMessage('Escala atualizada com sucesso!');
-      await fetchData();
-      handleCloseFormModal();
-    } catch (error) {
-      setError('Falha ao salvar a escala.');
-    } finally {
-      setTimeout(() => setSuccessMessage(null), 3000);
-    }
+    fileInputRef.current?.click();
   };
 
   const handleFileUpload = async (file: File) => {
     if (!selectedSchedule) return;
     try {
       setSchedulesLoading(true);
-      const updatedSchedule = await uploadScheduleFile(selectedSchedule.id, file);
-      setSchedules(schedules.map(s => s.id === updatedSchedule.id ? updatedSchedule : s));
+      await uploadScheduleFile(selectedSchedule.id, file);
+      await fetchData(); 
       setSuccessMessage('Arquivo enviado com sucesso!');
-      handleCloseFormModal();
+      showToast('Arquivo enviado com sucesso!', 'success');
     } catch (error) {
       const axiosError = error as AxiosError;
-      setError(typeof axiosError.response?.data?.message === 'string' ? axiosError.response.data.message : 'Falha ao enviar arquivo.');
+      const errorMessage = typeof axiosError.response?.data?.message === 'string' ? axiosError.response.data.message : 'Falha ao enviar arquivo.';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setSchedulesLoading(false);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -208,6 +196,17 @@ export default function LeaderScheduleManagementPage() {
 
   return (
     <PrivateRoute>
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0] && selectedSchedule) {
+            handleFileUpload(e.target.files[0]);
+          }
+        }}
+      />
       <div className="min-h-screen bg-gray-900 p-4 md:p-8">
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white">Gerenciamento de Suas Escalas</h1>
@@ -260,14 +259,14 @@ export default function LeaderScheduleManagementPage() {
                                 {new Date(schedule.startTime).toLocaleTimeString()} - {new Date(schedule.endTime).toLocaleTimeString()}
                               </p>
                             </div>
-                            <div className="flex items-center space-x-2 mt-4 md:mt-0">
-                              <button
-                                onClick={() => handleDownload(schedule.id)}
-                                className='bg-blue-600 hover:bg-blue-700 text-white  rounded-3xl p-1.5 flex items-center'
-                              >
-                                <FaDownload className="mr-2" /> Baixar Escala
-                              </button>
-                              <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 rounded-3xl p-1.5 flex items-center">
+                            <div className="flex items-center space-x-2 mt-4 md:mt-0">                              
+                                <button
+                                  onClick={() => handleDownload(schedule.id)}
+                                  className='bg-blue-600 hover:bg-blue-700 text-white  rounded-3xl p-1.5 flex items-center'
+                                >
+                                  <FaDownload className="mr-2" /> Baixar Escala
+                                </button>                              
+                              <button onClick={() => handleAttachFileClick(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 rounded-3xl p-1.5 flex items-center">
                                 <FaFileUpload className="mr-2" /> Anexar / Editar Arquivo
                               </button>
                             </div>
@@ -306,18 +305,6 @@ export default function LeaderScheduleManagementPage() {
               )}
             </div>
           </div>
-        )}
-        {isFormModalOpen && (
-          <Modal isOpen={isFormModalOpen} onClose={handleCloseFormModal} title={'Anexar Arquivo'}>
-            <ScheduleForm
-              scheduleToEdit={selectedSchedule}
-              onSubmit={handleFormSubmit}
-              onCancel={handleCloseFormModal}
-              successMessage={successMessage || undefined}
-              onFileUpload={handleFileUpload}
-              isLeader={user?.role === 'LEADER'}
-            />
-          </Modal>
         )}
       </div>
     </PrivateRoute>

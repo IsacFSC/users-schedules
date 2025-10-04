@@ -59,7 +59,7 @@ export const uploadFile = async (conversationId: number, file: File): Promise<Me
 };
 
 export const downloadFile = async (fileName: string) => {
-  const { data } = await api.get(`/messaging/messages/download/${fileName}`, {
+  const { data } = await api.get(`/messaging/download/${fileName}`, {
     responseType: 'blob',
   });
   return data;

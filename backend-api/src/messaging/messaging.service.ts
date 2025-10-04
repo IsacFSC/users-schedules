@@ -225,7 +225,7 @@ export class MessagingService {
     }
 
     res.setHeader('Content-Type', message.fileMimeType || 'application/octet-stream');
-    const fileStream = createReadStream(filePath);
-    fileStream.pipe(res);
+    res.setHeader('Content-Disposition', `attachment; filename="${message.content}"`);
+    createReadStream(filePath).pipe(res);
   }
 }

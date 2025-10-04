@@ -9,6 +9,7 @@ import {
   deleteSchedule,
   addUserToSchedule,
   removeUserFromSchedule,
+  downloadScheduleFile,
   Schedule,
 } from '../../../services/scheduleService';
 import { getUsers, User } from '../../../services/userService';
@@ -20,8 +21,7 @@ import ScheduleTaskManagement from '../../../components/ScheduleTaskManagement';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../hooks/useAuth';
 import { AxiosError } from 'axios';
-import PrivateRoute from '@/components/PrivateRoute';
-import { downloadScheduleFile } from '../../../services/scheduleFileService';
+import PrivateRoute from '@/components/PrivateRoute'; 
 import { FaPlus, FaArrowLeft, FaTasks, FaUsers, FaDownload, FaEdit, FaTrash } from 'react-icons/fa';
 import ScheduleFileManagement from '@/components/ScheduleFileManagement';
 
@@ -118,27 +118,12 @@ export default function ScheduleManagementPage() {
     // Placeholder for file upload logic
   };
 
-  const handleDownloadClick = async (fileId: number) => {
-    try {
-      const response = await downloadScheduleFile(fileId);
-      const blob = new Blob([response.data], { type: response.headers['content-type'] });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = 'download.dat';
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/i);
-        if (filenameMatch && filenameMatch.length > 1) {
-          filename = filenameMatch[1];
-        }
-      }
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      setSuccessMessage('Download do arquivo iniciado com sucesso!');
+  const handleDownloadClick = async (scheduleId: number) => {
+     try {
+      // A service function `downloadScheduleFile` já deve cuidar disso.
+      // O scheduleId é passado para a função de download.
+      await downloadScheduleFile(scheduleId);
+      // O navegador irá gerenciar o download, um toast de sucesso aqui é opcional.
     } catch (error) {
       setError('Falha ao baixar o arquivo.');
     }
@@ -354,16 +339,14 @@ export default function ScheduleManagementPage() {
                               <button onClick={() => handleOpenUserModal(schedule)} className="text-sm text-white bg-blue-700 hover:bg-blue-500 border rounded-3xl p-1 flex items-center" title="Gerenciar usuários">
                                 <FaUsers />
                                 <span className='ml-1 hidden sm:block'> Ministros</span>
-                              </button>
-                              {schedule.file && (
+                              </button>                              
                                 <button
                                   onClick={() => handleDownloadClick(schedule.id)}
                                   className="text-sm text-white bg-blue-500 hover:bg-blue-700 border rounded-3xl p-1 flex items-center" title="Baixar Anexo"
                                 >
                                   <FaDownload />
                                   <span className='ml-1 hidden sm:block'>  Baixar escala</span>
-                                </button>
-                              )}
+                                </button>                              
                               <button onClick={() => handleOpenFormModal(schedule)} className="text-sm text-white bg-indigo-600 hover:bg-indigo-900 border rounded-3xl p-1 flex items-center" title="Editar">
                                 <FaEdit />
                                 <span className='ml-1 hidden sm:block'> Editar</span>

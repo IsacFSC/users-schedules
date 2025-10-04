@@ -44,21 +44,22 @@ export const getMySchedules = async (): Promise<Schedule[]> => {
 };
 
 export const downloadScheduleFile = async (scheduleId: number): Promise<void> => {
-  const response = await api.get(`/schedules/${scheduleId}/file`, {
+  const response = await api.get(`/schedules/${scheduleId}/pdf`, {
     responseType: 'blob',
   });
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
   link.href = url;
   const contentDisposition = response.headers['content-disposition'];
-  let fileName = `escala-${scheduleId}.pdf`; // Default filename
+  let fileName = `escala-${scheduleId}.pdf`; // Nome de arquivo padrão
   if (contentDisposition) {
-    const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+    const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
     if (fileNameMatch && fileNameMatch.length === 2)
       fileName = fileNameMatch[1];
   }
   link.setAttribute('download', fileName);
   document.body.appendChild(link);
+  link.click();
   link.remove();
 };
 
@@ -76,7 +77,7 @@ export const uploadScheduleFile = async (scheduleId: number, file: File): Promis
 
 // New function to download an attached file from a schedule
 export const downloadAttachedFile = async (scheduleId: number): Promise<void> => {
-  const response = await api.get(`/schedules/${scheduleId}/uploaded-file`, {
+  const response = await api.get(`/schedules/${scheduleId}/uploaded-file`, { // A rota já está correta, apenas garantindo.
     responseType: 'blob',
   });
   const url = window.URL.createObjectURL(new Blob([response.data]));

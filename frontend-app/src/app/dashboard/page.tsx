@@ -110,19 +110,19 @@ export default function DashboardPage() {
   }, [user, loading, router]);
 
   useEffect(() => {
-    const fetchUnreadMessages = async () => {
-      try {
-        const count = await getUnreadMessagesCount();
-        setUnreadMessagesCount(count);
-      } catch (error) {
-        console.error("Failed to fetch unread messages count", error);
-      }
-    };
-
-    if (user) {
+    if (user && !schedulesLoading) { // Executa após o carregamento das escalas
+      const fetchUnreadMessages = async () => {
+        try {
+          const count = await getUnreadMessagesCount();
+          setUnreadMessagesCount(count);
+        } catch (error) {
+          console.error("Failed to fetch unread messages count", error);
+        }
+      };
+      
       fetchUnreadMessages();
     }
-  }, [user]);
+  }, [user, schedulesLoading]); // Adiciona schedulesLoading como dependência
 
   useEffect(() => {
     const filtered = schedules.filter(schedule =>
@@ -133,7 +133,10 @@ export default function DashboardPage() {
 
   const handleDownload = async (scheduleId: number) => {
     try {
+      // A função já deve cuidar do download do arquivo
       await downloadScheduleFile(scheduleId);
+      // Não é necessário um toast de sucesso aqui, pois o navegador
+      // já indica o início do download.
       showToast('Escala baixada com sucesso!', 'success');
     } catch (error) {
       console.error('Error downloading file:', error);
@@ -236,14 +239,13 @@ function showToast(message: string, type: 'success' | 'error') {
                                 {new Date(schedule.startTime).toLocaleTimeString()} - {new Date(schedule.endTime).toLocaleTimeString()}
                               </p>
                             </div>
-                            <div className="flex items-center space-x-2 mt-4 md:mt-0">
-                              <button
-                                onClick={() => handleDownload(schedule.id)}
-                                className='bg-blue-600 hover:bg-blue-700 text-white  rounded-3xl p-1.5 flex items-center'
-                              >
-                                <FaDownload className="mr-2" /> Baixar Escala
-                              </button>
-                              
+                            <div className="flex items-center space-x-2 mt-4 md:mt-0">                              
+                                <button
+                                  onClick={() => handleDownload(schedule.id)}
+                                  className='bg-blue-600 hover:bg-blue-700 text-white rounded-3xl p-1.5 flex items-center'
+                                >
+                                  <FaDownload className="mr-2" /> Baixar Escala
+                                </button>                              
                             </div>
                           </div>
                           <div className="mt-4">
@@ -269,7 +271,8 @@ function showToast(message: string, type: 'success' | 'error') {
                               </ul>
                             </div>
                           )}
-                          <ScheduleFileManagement scheduleId={schedule.id} />
+                          {/* O ScheduleFileManagement parece ser para o admin, removido da visão do usuário comum */}
+                          {/* <ScheduleFileManagement scheduleId={schedule.id} /> */}
                         </div>
                       ))}
                     </div>

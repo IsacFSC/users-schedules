@@ -35,12 +35,14 @@ import { AddUserToScheduleDto } from './dto/add-user-to-schedule.dto';
 @Controller('schedules')
 export class SchedulesController {
   @Get(':id/pdf')
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   async downloadSchedulePDF(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const schedule = await this.schedulesService.findOne(id);
-    const pdfBuffer = generateSchedulePDF(schedule);
+    const pdfBuffer = await generateSchedulePDF(schedule);
+    const fileName = `escala_${schedule.name.replace(/\s+/g, '_')}_${new Date(schedule.startTime).toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`;
     res.set({
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename=escala_${id}.pdf`,
+      'Content-Disposition': `attachment; filename="${fileName}"`,
     });
     res.send(pdfBuffer);
   }
@@ -58,9 +60,17 @@ export class SchedulesController {
   uploadFile(
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() file: Express.Multer.File,
+    @Request() req: any,
   ) {
-    return this.schedulesService.uploadFile(id, file);
+    return this.schedulesService.uploadFile(id, file, req.user);
   }
+
+  @Get(':id/uploaded-file')
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
+  downloadAttachedFile(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    return this.schedulesService.downloadAttachedFile(id, res);
+  }
+
 
   @Post(':id/users/:userId')
   @Roles(Role.ADMIN)
@@ -99,6 +109,7 @@ export class SchedulesController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.schedulesService.findOne(id);
   }

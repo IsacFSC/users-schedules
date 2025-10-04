@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Response } from 'express';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, createReadStream, existsSync, mkdirSync } from 'fs';
+import { join, resolve } from 'path';
 import { Skill } from '@prisma/client';
 
 @Injectable()
@@ -32,9 +33,14 @@ export class SchedulesService {
     });
   }
 
-  async uploadFile(scheduleId: number, file: Express.Multer.File) {
+  async uploadFile(scheduleId: number, file: Express.Multer.File, uploader: { id: number }) {
     const schedule = await this.prisma.schedule.findUnique({
       where: { id: scheduleId },
+      include: {
+        users: {
+          select: { userId: true }
+        }
+      }
     });
 
     if (!schedule) {
@@ -42,9 +48,14 @@ export class SchedulesService {
     }
 
     const fileName = `${Date.now()}-${file.originalname}`;
-    const filePath = join(process.cwd(), 'files', fileName);
+    const uploadPath = join(process.cwd(), 'backend-api', 'files');
+    const filePath = join(uploadPath, fileName);
 
     try {
+      // Garante que o diretório de upload exista
+      if (!existsSync(uploadPath)) {
+        mkdirSync(uploadPath, { recursive: true });
+      }
       writeFileSync(filePath, file.buffer);
     } catch (error) {
       throw new HttpException(
@@ -55,10 +66,85 @@ export class SchedulesService {
 
     const updatedSchedule = await this.prisma.schedule.update({
       where: { id: scheduleId },
-      data: { file: fileName },
+      data: { 
+        file: fileName,
+        fileMimeType: file.mimetype 
+      },
     });
 
-    return updatedSchedule;
+    // Lógica para criar/enviar mensagem
+    const participantIds = schedule.users.map(u => u.userId);
+    if (!participantIds.includes(uploader.id)) {
+      participantIds.push(uploader.id);
+    }
+
+    if (participantIds.length > 1) {
+      const conversationSubject = `Escala: ${schedule.name}`;
+      
+      // Tenta encontrar uma conversa existente com os mesmos participantes e assunto
+      let conversation = await this.prisma.conversation.findFirst({
+        where: {
+          subject: conversationSubject,
+          participants: {
+            every: { id: { in: participantIds } },
+            // Garante que não há outros participantes
+            none: { id: { notIn: participantIds } }
+          }
+        }
+      });
+
+      // Se não existir, cria uma nova
+      if (!conversation) {
+        conversation = await this.prisma.conversation.create({
+          data: {
+            subject: conversationSubject,
+            participants: {
+              connect: participantIds.map(id => ({ id }))
+            }
+          }
+        });
+      }
+
+      // Cria a mensagem com o anexo na conversa
+      await this.prisma.message.create({
+        data: {
+          content: `Arquivo da escala: ${file.originalname}`,
+          authorId: uploader.id,
+          conversationId: conversation.id,
+          file: fileName,
+          fileMimeType: file.mimetype,
+        }
+      });
+    }
+
+    // Retorna a escala atualizada com suas relações
+    return this.prisma.schedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        users: { include: { user: true } },
+        tasks: true,
+      },
+    });
+  }
+
+  async downloadAttachedFile(scheduleId: number, res: Response) {
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id: scheduleId },
+    });
+
+    if (!schedule || !schedule.file) {
+      throw new HttpException('Arquivo não encontrado para esta escala!', HttpStatus.NOT_FOUND);
+    }
+
+    const filePath = resolve(process.cwd(), 'backend-api', 'files', schedule.file);
+
+    if (!existsSync(filePath)) {
+      throw new HttpException('Arquivo não encontrado no servidor!', HttpStatus.NOT_FOUND);
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${schedule.file}"`);
+    res.setHeader('Content-Type', schedule.fileMimeType || 'application/octet-stream');
+    createReadStream(filePath).pipe(res);
   }
 
   async findSchedulesByUser(userId: number) {

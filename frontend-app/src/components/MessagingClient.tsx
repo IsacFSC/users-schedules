@@ -222,7 +222,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
                       <p className="font-bold">{msg.author?.name || 'Participante'}</p>
                       {msg.file ? (
                         msg.fileMimeType && msg.fileMimeType.startsWith('image/') ? (
-                          <img src={`${process.env.NEXT_PUBLIC_API_URL}/messaging/messages/download/${msg.file}`} alt={msg.content} className="max-w-xs rounded-lg" />
+                          <img src={`${process.env.NEXT_PUBLIC_API_URL}/messaging/download/${msg.file}`} alt={msg.content || 'imagem'} className="max-w-xs rounded-lg" />
                         ) : (
                           <button onClick={() => handleDownload(msg.file!)} className="text-blue-200 hover:underline flex items-center">
                             <FaDownload className="mr-2" />

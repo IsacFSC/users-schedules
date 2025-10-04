@@ -84,7 +84,7 @@ export class MessagingController {
     return this.messagingService.uploadFile(id, file, req.user);
   }
 
-  @Get('messages/download/:fileName')
+  @Get('download/:fileName')
   @Roles(Role.ADMIN, Role.LEADER, Role.USER)
   downloadFile(@Param('fileName') fileName: string, @Res() res: Response) {
     return this.messagingService.downloadFile(fileName, res);
