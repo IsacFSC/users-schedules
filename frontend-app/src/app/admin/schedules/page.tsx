@@ -54,6 +54,11 @@ const linkify = (text: string) => {
   ));
 };
 
+const formatSkill = (skill: string) => {
+  if (!skill) return '';
+  return skill.replace(/_/g, ' ');
+};
+
 const groupSchedulesByDate = (schedules: Schedule[]) => {
   const grouped: { [date: string]: Schedule[] } = {};
   schedules.forEach(schedule => {
@@ -81,6 +86,7 @@ export default function ScheduleManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -95,7 +101,9 @@ export default function ScheduleManagementPage() {
         getUsers(),
         getTasks({}),
       ]);
-      setSchedules(fetchedSchedules);
+      // Ordena as escalas pela data mais recente
+      const sortedSchedules = fetchedSchedules.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+      setSchedules(sortedSchedules);
       setAllUsers(fetchedUsers);
       setAllTasks(fetchedTasksResponse.data);
       setError(null);
@@ -274,9 +282,20 @@ export default function ScheduleManagementPage() {
     return <p>Redirecionando para a página de login...</p>;
   }
 
-  const filteredSchedules = schedules.filter(schedule =>
-    schedule.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSchedules = schedules.filter(schedule => {
+    const matchesSearchTerm = schedule.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!dateFilter) {
+      return matchesSearchTerm;
+    }
+
+    const scheduleDate = new Date(schedule.startTime);
+    const filterDate = new Date(dateFilter);
+    const matchesDate = scheduleDate.getUTCFullYear() === filterDate.getUTCFullYear() &&
+                        scheduleDate.getUTCMonth() === filterDate.getUTCMonth() &&
+                        scheduleDate.getUTCDate() === filterDate.getUTCDate();
+    return matchesSearchTerm && matchesDate;
+  });
 
   const groupedSchedules = groupSchedulesByDate(filteredSchedules);
 
@@ -298,15 +317,37 @@ export default function ScheduleManagementPage() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <input
-            type="text"
-            placeholder="Buscar escalas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-md"
-          />
+        <div className="mt-8 flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <span className="text-gray-400">Buscar:</span>
+            <input
+              type="text"
+              placeholder="Buscar escalas pelo nome..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-md"
+            />
+          </div>
+          <div className="flex-1">
+            <span className="text-gray-400">Filtrar por data do dia da Escala:</span>
+            <input
+              type="date"
+              placeholder="Filtrar por data do dia da Escala..."
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full p-2 border border-gray-700 bg-gray-800 text-white rounded-md"
+            />
+          </div>
         </div>
+
+        {dateFilter && (
+          <button
+            onClick={() => setDateFilter('')}
+            className="mt-2 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
+          >
+            Limpar Filtro de Data
+          </button>
+        )}
 
         {loading ? (
           <p className="mt-8">Carregando...</p>
@@ -361,7 +402,7 @@ export default function ScheduleManagementPage() {
                             <h4 className="font-semibold text-gray-900">Usuários nesta escala:</h4>
                             <ul className="list-disc list-inside">
                               {schedule.users.map(userOnSchedule => (
-                                <li key={userOnSchedule.userId} className="text-gray-800">{userOnSchedule.user.name} - {userOnSchedule.skill}</li>
+                                <li key={userOnSchedule.userId} className="text-gray-800">{userOnSchedule.user.name} - {formatSkill(userOnSchedule.skill)}</li>
                               ))}
                             </ul>
                           </div>

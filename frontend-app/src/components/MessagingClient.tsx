@@ -76,7 +76,7 @@ export default function MessagingClient({ userRole }: MessagingClientProps) {
       if (selectedConversation) {
         handleSelectConversation(selectedConversation, true);
       }
-    }, 1000);
+    }, 30000); // Aumentado para 30 segundos
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
